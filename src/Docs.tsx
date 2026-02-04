@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Terminal,
     ShieldCheck,
-    Github,
     Zap,
     Layers,
     ChevronRight,

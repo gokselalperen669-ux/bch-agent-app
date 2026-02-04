@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Bot,
   Cpu,
@@ -270,18 +270,7 @@ const StatsCard = ({ icon: Icon, label, value, delta }: any) => (
   </motion.div>
 );
 
-const HealthItem = ({ label, status, uptime }: any) => (
-  <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 group">
-    <div className="flex items-center gap-2">
-      <div className={`w-1 h-3 rounded-full ${status === 'online' ? 'bg-primary-color/30' : 'bg-red-500/30'}`}></div>
-      <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary transition-colors">{label}</span>
-    </div>
-    <div className="flex items-center gap-3">
-      <span className="text-[9px] font-bold text-text-secondary/50 group-hover:text-text-secondary transition-colors">{uptime}</span>
-      <div className={`w-2 h-2 rounded-full border-2 border-black ${status === 'online' ? 'bg-primary-color shadow-[0_0_8px_rgba(0,227,57,0.5)]' : 'bg-red-500 opacity-30 animate-pulse'}`}></div>
-    </div>
-  </div>
-);
+
 
 const AgentLab = () => {
   const [isDeploying, setIsDeploying] = useState(false);
