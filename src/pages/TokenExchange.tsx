@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import {
     TrendingUp,
@@ -78,7 +77,7 @@ const TradingRow = ({ agent }: { agent: TokenizedAgent }) => (
     </motion.tr>
 );
 
-const TokenExchange: React.FC = () => {
+const TokenExchange = () => {
     return (
         <div className="space-y-8 pb-20">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

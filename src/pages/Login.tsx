@@ -56,30 +56,36 @@ const Login: React.FC = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-bold text-text-secondary tracking-[0.2em] ml-1">Terminal ID (Email)</label>
+                            <label htmlFor="email" className="text-[10px] uppercase font-bold text-text-secondary tracking-[0.2em] ml-1">Terminal ID (Email)</label>
                             <div className="relative group">
                                 <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-color transition-colors" />
                                 <input
+                                    id="email"
+                                    name="email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-color/50 focus:bg-primary-color/5 transition-all text-sm font-medium"
                                     placeholder="agent@bch.network"
+                                    autoComplete="email"
                                     required
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-bold text-text-secondary tracking-[0.2em] ml-1">Access Key (Password)</label>
+                            <label htmlFor="password" className="text-[10px] uppercase font-bold text-text-secondary tracking-[0.2em] ml-1">Access Key (Password)</label>
                             <div className="relative group">
                                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-color transition-colors" />
                                 <input
+                                    id="password"
+                                    name="password"
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 outline-none focus:border-primary-color/50 focus:bg-primary-color/5 transition-all text-sm font-medium"
                                     placeholder="••••••••••••"
+                                    autoComplete="current-password"
                                     required
                                 />
                             </div>

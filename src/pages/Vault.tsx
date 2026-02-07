@@ -1,25 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plus,
-    Zap,
     Activity,
     Lock,
     Wallet as WalletIcon,
     Copy,
     Loader,
     Shield,
-    Check,
     Bot,
-    Search,
-    ChevronDown,
     ArrowUpRight,
     ArrowDownLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Wallet, type Agent } from '../types';
 
-const Vault: React.FC = () => {
+const Vault = () => {
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);

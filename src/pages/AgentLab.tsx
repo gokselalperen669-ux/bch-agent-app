@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Cpu, Plus, Activity, Shield, Database, Lock, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -232,6 +232,15 @@ contract GenericAgent(
 
                         <div className="pt-6 border-t border-white/5 flex gap-4">
                             <button className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs hover:bg-white/10 transition-all uppercase tracking-widest">Discard</button>
+                            <button
+                                className={`flex-1 py-3 border rounded-xl font-bold text-xs transition-all uppercase tracking-widest ${deployed
+                                    ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30'
+                                    : 'bg-white/5 border-white/5 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                disabled={!deployed}
+                            >
+                                Tokenize
+                            </button>
                             <button className="flex-1 py-3 bg-primary-color/20 border border-primary-color/30 text-primary-color rounded-xl font-bold text-xs hover:bg-primary-color/30 transition-all uppercase tracking-widest" onClick={handleDeploy}>Save Config</button>
                         </div>
                     </div>

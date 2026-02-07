@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type ElementType, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Terminal,
@@ -10,12 +10,12 @@ import {
 } from 'lucide-react';
 
 interface DocSection {
-    icon: React.ElementType;
+    icon: ElementType;
     title: string;
-    content: React.ReactNode;
+    content: ReactNode;
 }
 
-const FeatureCard = ({ icon: Icon, title, desc }: { icon: React.ElementType, title: string, desc: string }) => (
+const FeatureCard = ({ icon: Icon, title, desc }: { icon: ElementType, title: string, desc: string }) => (
     <div className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
         <div className="w-12 h-12 rounded-xl bg-[#00E339]/10 flex items-center justify-center mb-4 group-hover:bg-[#00E339]/20 transition-all">
             <Icon className="text-[#00E339]" size={24} />

@@ -23,7 +23,7 @@ Welcome to the **BCH Agent Studio**, a premium developer tool for creating, depl
 - **Framework**: Vite + React + TypeScript
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
-- **Styling**: Modern CSS (Variables + Flexbox/Grid)
+- **Styling**: Tailwind CSS + Vanilla CSS Variables
 
 ## 🚀 Future Backend Integration
 

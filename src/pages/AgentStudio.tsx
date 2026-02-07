@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Zap,
@@ -122,7 +122,7 @@ const StudioCard = ({ nft, onNegotiate }: { nft: AgentNft, onNegotiate: (nft: Ag
     </motion.div>
 );
 
-const AgentStudio: React.FC = () => {
+const AgentStudio = () => {
     const [selectedNft, setSelectedNft] = useState<AgentNft | null>(null);
 
     return (

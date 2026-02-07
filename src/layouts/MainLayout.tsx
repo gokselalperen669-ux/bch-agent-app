@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     Bot,
@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
-const MainLayout: React.FC = () => {
+const MainLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const { logout, user } = useAuth();
     const navigate = useNavigate();

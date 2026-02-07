@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Zap, Shield, Activity, Eye, ChevronRight, Globe, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Agent } from '../types';
 
-const StatsCard = ({ icon: Icon, label, value, delta }: { icon: React.ElementType, label: string, value: string, delta: string }) => (
+const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, label: string, value: string, delta: string }) => (
     <motion.div
         whileHover={{ y: -4 }}
         className="glass-panel p-6 flex flex-col gap-1 relative overflow-hidden group cursor-default shadow-lg shadow-black/20"
@@ -26,22 +26,31 @@ const StatsCard = ({ icon: Icon, label, value, delta }: { icon: React.ElementTyp
     </motion.div>
 );
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
     const [activities, setActivities] = useState<Agent[]>([]);
-    const [stats, setStats] = useState({ agents: '0', txs: '0', value: '0 BCH' });
+    const [stats, setStats] = useState({ agents: '0', txs: '1,284', value: '0.00' });
     const { user } = useAuth();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!user?.token) return;
             try {
-                const agentsRes = await fetch('http://localhost:4000/agents', {
-                    headers: { 'Authorization': `Bearer ${user.token}` }
-                });
+                const headers = { 'Authorization': `Bearer ${user.token}` };
+
+                // Fetch agents
+                const agentsRes = await fetch('http://localhost:4000/agents', { headers });
                 if (agentsRes.ok) {
                     const agents = await agentsRes.json();
-                    setActivities(agents.slice(0, 4)); // Show last 4 agents as "activities" for now
+                    setActivities(agents.slice(0, 4));
                     setStats(prev => ({ ...prev, agents: agents.length.toString() }));
+                }
+
+                // Fetch wallets for total value
+                const walletsRes = await fetch('http://localhost:4000/wallets', { headers });
+                if (walletsRes.ok) {
+                    const wallets = await walletsRes.json();
+                    const totalBalance = wallets.reduce((acc: number, w: any) => acc + parseFloat(w.balance || '0'), 0);
+                    setStats(prev => ({ ...prev, value: totalBalance.toFixed(2) }));
                 }
             } catch (e) {
                 console.error('Dashboard fetch error:', e);
@@ -53,8 +62,8 @@ const Dashboard: React.FC = () => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatsCard icon={Bot} label="Active Agents" value={stats.agents} delta="+1" />
-            <StatsCard icon={Zap} label="BCH Transactions" value="1,284" delta="+12%" />
-            <StatsCard icon={Shield} label="Contract Value" value="42.5 BCH" delta="Stable" />
+            <StatsCard icon={Zap} label="BCH Transactions" value={stats.txs} delta="+12%" />
+            <StatsCard icon={Shield} label="Contract Value" value={`${stats.value} BCH`} delta="Stable" />
 
             <div className="md:col-span-2 glass-panel p-8 min-h-[400px] flex flex-col shadow-lg shadow-black/20">
                 <div className="flex items-center justify-between mb-8">
