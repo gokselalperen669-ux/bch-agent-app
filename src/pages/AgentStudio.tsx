@@ -5,11 +5,11 @@ import {
     Bot,
     Plus,
     Shield,
-    Cpu,
-    ChevronRight,
-    Search,
     Filter,
-    Layers
+    Layers,
+    Activity,
+    Lock,
+    Search
 } from 'lucide-react';
 import { getApiUrl } from '../config';
 
@@ -32,7 +32,7 @@ const mockNfts: AgentNft[] = [
         agentName: 'Artis-AI',
         agentId: 'ag-001',
         title: 'Neural Flow Analysis #41',
-        description: 'Autonomous visualization of BCH network traffic patterns during block 824,000.',
+        description: 'Autonomous visualization of BCH network traffic patterns.',
         image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800',
         supply: 1,
         price: '2.5 BCH',
@@ -44,24 +44,12 @@ const mockNfts: AgentNft[] = [
         agentName: 'Satoshi-Bot',
         agentId: 'ag-002',
         title: 'P2P Philosophy: Genesis',
-        description: 'Synthesized historical context of electronic cash, rendered as digital asset.',
+        description: 'Synthesized historical context of electronic cash.',
         image: 'https://images.unsplash.com/photo-1633167606207-d840b5070fc2?auto=format&fit=crop&q=80&w=800',
         supply: 10,
         price: '0.8 BCH',
         status: 'listed',
         lastActivity: '12m ago'
-    },
-    {
-        id: 'nft-3',
-        agentName: 'Cyber-Logic',
-        agentId: 'ag-003',
-        title: 'Covenant Logic Gate',
-        description: 'Abstract representation of complex CashScript spending conditions.',
-        image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=800',
-        supply: 5,
-        price: '1.2 BCH',
-        status: 'minting',
-        lastActivity: 'Just now'
     }
 ];
 
@@ -70,53 +58,39 @@ const StudioCard = ({ nft, onNegotiate }: { nft: AgentNft, onNegotiate: (nft: Ag
         whileHover={{ y: -8 }}
         className="glass-panel overflow-hidden group border-white/5 hover:border-primary-color/30 transition-all duration-500 bg-black/20"
     >
-        <div className="relative aspect-video overflow-hidden">
+        <div className="relative aspect-square overflow-hidden">
             <img
                 src={nft.image}
                 alt={nft.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
-            <div className="absolute top-4 left-4 flex gap-2">
-                <div className={`px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest backdrop-blur-md border ${nft.status === 'minting'
-                    ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
-                    : 'bg-primary-color/20 border-primary-color/40 text-primary-color'
-                    }`}>
+            <div className="absolute top-4 left-4">
+                <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[9px] font-bold text-primary-color uppercase tracking-widest">
                     {nft.status}
                 </div>
-            </div>
-
-            <div className="absolute bottom-4 left-4 right-4">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-color animate-pulse" />
-                    <span className="text-[9px] font-bold text-primary-color uppercase tracking-[0.2em]">{nft.agentName} Curator</span>
-                </div>
-                <h3 className="text-lg font-bold text-white truncate">{nft.title}</h3>
             </div>
         </div>
 
         <div className="p-5 space-y-4">
-            <div className="flex justify-between items-end">
-                <div>
-                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest mb-1">Valuation</p>
-                    <p className="text-xl font-black text-white">{nft.price}</p>
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <Bot size={12} className="text-primary-color" />
+                    <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">{nft.agentName}</span>
                 </div>
-                <div className="flex flex-col items-end">
-                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest mb-1">Supply</p>
-                    <p className="text-sm font-bold text-text-primary">{nft.supply > 1 ? `Edition of ${nft.supply}` : 'Unique 1/1'}</p>
-                </div>
+                <h3 className="text-sm font-bold text-white truncate">{nft.title}</h3>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex justify-between items-end border-t border-white/5 pt-4">
+                <div>
+                    <p className="text-[9px] text-text-secondary uppercase font-bold tracking-widest mb-0.5">Valuation</p>
+                    <p className="text-lg font-black text-white">{nft.price}</p>
+                </div>
                 <button
                     onClick={() => onNegotiate(nft)}
-                    className="flex-1 py-3 bg-primary-color/10 border border-primary-color/20 rounded-xl text-primary-color text-xs font-bold hover:bg-primary-color hover:text-black transition-all uppercase tracking-widest"
+                    className="p-2.5 bg-primary-color/10 border border-primary-color/20 rounded-xl text-primary-color hover:bg-primary-color hover:text-black transition-all shadow-lg shadow-primary-color/5"
                 >
-                    Negotiate with AI
-                </button>
-                <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-all">
-                    <ChevronRight size={18} />
+                    <Zap size={16} />
                 </button>
             </div>
         </div>
@@ -126,24 +100,20 @@ const StudioCard = ({ nft, onNegotiate }: { nft: AgentNft, onNegotiate: (nft: Ag
 const AgentStudio = () => {
     const [selectedNft, setSelectedNft] = useState<AgentNft | null>(null);
     const [nfts, setNfts] = useState<AgentNft[]>([]);
-    const [curators, setCurators] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchStudioData = async () => {
             try {
-                // 1. Fetch Agents who act as curators
                 const agentsRes = await fetch(getApiUrl('/public/agents'));
                 const agentsData = await agentsRes.json();
-                setCurators(agentsData.slice(0, 3));
 
-                // 2. Map agents to local NFT representation for the demo until real NFT sync is deep
-                const mappedNfts = agentsData.filter((a: any) => a.type === 'nft' || a.category).map((a: any) => ({
+                const mappedNfts = agentsData.filter((a: any) => a.type === 'nft' || a.category === 'nft').map((a: any) => ({
                     id: `nft-${a.id}`,
                     agentName: a.name,
                     agentId: a.agentId || a.id,
-                    title: `${a.name} Generative State #${Math.floor(Math.random() * 100)}`,
-                    description: `Autonomous state commitment from ${a.name} on the BCH network.`,
+                    title: `${a.name} State Commitment`,
+                    description: `Autonomous state commitment hash recorded by ${a.name}.`,
                     image: `https://api.dicebear.com/7.x/identicon/svg?seed=${a.name}`,
                     supply: 1,
                     price: '0.5 BCH',
@@ -153,117 +123,103 @@ const AgentStudio = () => {
 
                 setNfts(mappedNfts.length > 0 ? mappedNfts : mockNfts);
             } catch (err) {
-                console.error('Studio fetch error:', err);
+                console.error(err);
                 setNfts(mockNfts);
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchStudioData();
     }, []);
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="w-12 h-12 border-4 border-primary-color/20 border-t-primary-color rounded-full animate-spin" />
+                <div className="w-16 h-16 border-4 border-primary-color/20 border-t-primary-color rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="space-y-12 pb-20">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
-                <div className="space-y-4">
+        <div className="space-y-10 pb-20">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+                <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary-color/20 rounded-lg">
                             <Layers size={18} className="text-primary-color" />
                         </div>
-                        <span className="text-xs font-bold text-primary-color uppercase tracking-[0.3em]">Autonomous Protocol (Molt-Spec)</span>
+                        <span className="text-[10px] font-black text-primary-color uppercase tracking-[0.3em]">Agentic Output Studio</span>
                     </div>
-                    <h1 className="text-4xl font-black font-title tracking-tight text-white leading-none">
-                        AI NFT STUDIO
-                    </h1>
-                    <p className="text-text-secondary max-w-xl">
-                        Real-time synchronization with on-chain agents. Terminating simulated data in favor of active **Molt-Spec** deployments.
+                    <h1 className="text-4xl font-black font-title tracking-tight text-white italic">NFT FORGE</h1>
+                    <p className="text-text-secondary text-sm max-w-xl">
+                        Monitor and trade generative assets produced by autonomous agents on the BCH network.
                     </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                     <div className="relative">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                         <input
                             type="text"
-                            placeholder="Search protocol assets..."
-                            className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-primary-color/40 transition-all text-sm w-64"
+                            placeholder="Filter artifacts..."
+                            className="bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-xs outline-none focus:border-primary-color/40 w-48"
                         />
                     </div>
-                    <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-all">
+                    <button className="p-2 bg-white/5 border border-white/10 rounded-xl text-white">
                         <Filter size={18} />
                     </button>
                 </div>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {nfts.map(nft => (
+                    <StudioCard key={nft.id} nft={nft} onNegotiate={setSelectedNft} />
+                ))}
+
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="glass-panel border-dashed border-white/20 flex flex-col items-center justify-center p-8 text-center min-h-[300px] group cursor-pointer hover:border-primary-color/40"
+                >
+                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-primary-color/10">
+                        <Plus size={24} className="text-text-secondary group-hover:text-primary-color" />
+                    </div>
+                    <h4 className="font-bold text-text-secondary text-sm">Deploy New NFT Agent</h4>
+                    <p className="text-[10px] text-text-tertiary mt-2 uppercase font-black italic">Use CLI: `agent create --type nft`</p>
+                </motion.div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {nfts.map(nft => (
-                            <StudioCard key={nft.id} nft={nft} onNegotiate={setSelectedNft} />
-                        ))}
-
-                        <div className="glass-panel border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-center min-h-[350px] group cursor-pointer hover:border-primary-color/20 transition-all">
-                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-primary-color/10">
-                                <Plus size={24} className="text-text-secondary group-hover:text-primary-color" />
+            {/* Live Feed Sidebar Style Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-10">
+                <div className="lg:col-span-2 glass-panel p-8 overflow-hidden relative border-blue-500/20">
+                    <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none text-blue-500">
+                        <Lock size={160} />
+                    </div>
+                    <h3 className="text-lg font-black italic uppercase italic mb-6">Security & Commitment Proofs</h3>
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <Shield size={16} className="text-blue-400" />
+                                    <span className="text-xs font-mono text-text-secondary">Commit: 0x82f...e{i}7a</span>
+                                </div>
+                                <span className="text-[9px] font-black text-green-400 uppercase">Verified on Chain</span>
                             </div>
-                            <h4 className="font-bold text-text-secondary group-hover:text-text-primary">Request New AI Output</h4>
-                            <p className="text-[10px] text-text-secondary mt-2 uppercase tracking-widest font-bold opacity-40 italic">Syncing with Agent Lab...</p>
-                        </div>
+                        ))}
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="glass-panel p-6 space-y-4 border-primary-color/10 bg-primary-color/[0.02]">
-                        <h3 className="font-bold text-sm flex items-center gap-2">
-                            <Zap size={16} className="text-primary-color" />
-                            Molt-Spec Feed
-                        </h3>
-                        <div className="space-y-3">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="text-[11px] leading-relaxed border-b border-white/5 pb-3">
-                                    <span className="text-primary-color font-bold">Artis-AI</span> initialized minting sequence for
-                                    <span className="text-white font-bold ml-1">"Pattern-872"</span>.
-                                    <p className="text-text-secondary mt-1 opacity-60 font-mono">Tx: 8f2...{i}ea • 2m ago</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="glass-panel p-6 space-y-4">
-                        <h3 className="font-bold text-sm flex items-center gap-2">
-                            <Cpu size={16} className="text-blue-400" />
-                            Active Curators
-                        </h3>
-                        <div className="space-y-3">
-                            {curators.length > 0 ? curators.map(c => (
-                                <div key={c.id} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-xs font-bold">{c.name}</span>
-                                    </div>
-                                    <span className="text-[10px] font-mono text-text-secondary opacity-60">ID: {c.agentId?.slice(0, 8) || 'ag-...'}</span>
-                                </div>
-                            )) : (
-                                ['Artis', 'Satoshi', 'Cyber'].map(name => (
-                                    <div key={name} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                            <span className="text-xs font-bold">{name}-Bot</span>
-                                        </div>
-                                        <span className="text-[10px] font-mono text-text-secondary opacity-60">ID: ag-00{name.length}</span>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                <div className="glass-panel p-8 border-primary-color/20 bg-primary-color/[0.02]">
+                    <h3 className="text-lg font-black italic uppercase mb-6 flex items-center gap-2">
+                        <Activity size={20} className="text-primary-color" /> Live Mint Feed
+                    </h3>
+                    <div className="space-y-6">
+                        {[1, 2].map(i => (
+                            <div key={i} className="text-[11px] leading-relaxed">
+                                <span className="text-primary-color font-bold">Artis-AI</span> initialized minting sequence for
+                                <span className="text-white font-bold ml-1">"Artifact-0x{i}"</span>.
+                                <p className="text-text-tertiary mt-1 font-mono">2m ago • Block 824,00{i}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -272,66 +228,33 @@ const AgentStudio = () => {
                 {selectedNft && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="glass-panel max-w-4xl w-full h-[600px] flex overflow-hidden border-primary-color/20"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="glass-panel max-w-lg w-full p-8 border-primary-color/30"
                         >
-                            <div className="w-1/3 border-r border-white/5 bg-black/20 p-8 hidden md:flex flex-col">
-                                <img src={selectedNft.image} alt={selectedNft.title} className="w-full aspect-square object-cover rounded-2xl mb-6 shadow-2xl" />
-                                <h3 className="text-xl font-bold mb-2">{selectedNft.title}</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed mb-6">{selectedNft.description}</p>
-
-                                <div className="mt-auto space-y-4">
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                        <p className="text-[10px] text-text-secondary uppercase font-bold mb-1">Direct Ask</p>
-                                        <p className="text-xl font-extrabold text-primary-color">{selectedNft.price}</p>
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl">
+                                        <img src={selectedNft.image} className="w-full h-full object-cover" />
                                     </div>
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-color/10 border border-primary-color/20 text-[9px] font-bold text-primary-color uppercase w-fit tracking-tighter">
-                                        <Shield size={10} />
-                                        Molt-Spec Authentication
+                                    <div>
+                                        <h3 className="text-xl font-black italic uppercase">{selectedNft.title}</h3>
+                                        <p className="text-xs text-text-secondary">{selectedNft.agentName} Output</p>
                                     </div>
                                 </div>
+                                <button onClick={() => setSelectedNft(null)} className="text-text-tertiary hover:text-white">✕</button>
                             </div>
 
-                            <div className="flex-1 flex flex-col bg-black/40">
-                                <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-primary-color/10 flex items-center justify-center border border-primary-color/20">
-                                            <Bot size={20} className="text-primary-color" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold">Negotiating with {selectedNft.agentName}</p>
-                                            <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tighter opacity-50">On-Chain Intelligence Session</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setSelectedNft(null)} className="p-2 text-text-secondary hover:text-white">✕</button>
-                                </div>
+                            <div className="bg-black/40 rounded-2xl p-6 border border-white/5 mb-6">
+                                <p className="text-xs text-text-secondary leading-relaxed italic">
+                                    "I have analyzed the current market floor and my internal resource allocation. This NFT represents a unique state commitment of my logic."
+                                </p>
+                            </div>
 
-                                <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scroll">
-                                    <div className="flex justify-start">
-                                        <div className="max-w-[80%] p-4 rounded-2xl rounded-tl-none bg-white/5 border border-white/10 text-sm">
-                                            Established connection with {selectedNft.agentName}. I am analyzing current liquidity and asset floor price. My valuation is based on autonomous neural weighting. State your offer.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-6 border-t border-white/5 bg-black/20">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Enter BCH counter-offer..."
-                                            className="w-full bg-black/60 border border-white/10 rounded-xl py-4 pl-6 pr-12 outline-none focus:border-primary-color transition-all text-sm"
-                                        />
-                                        <button className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-color uppercase font-black text-[10px] tracking-widest bg-primary-color/20 px-2 py-1 rounded-lg">
-                                            PROPOSE
-                                        </button>
-                                    </div>
-                                    <div className="flex gap-4 mt-4">
-                                        <button className="flex-1 py-3 bg-primary-color text-black font-extrabold rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-primary-color/20">Accept Original Price</button>
-                                        <button onClick={() => setSelectedNft(null)} className="px-6 py-3 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-all">TERMINATE</button>
-                                    </div>
-                                </div>
+                            <div className="flex gap-4">
+                                <button className="flex-1 py-4 bg-primary-color text-black font-black rounded-xl text-xs uppercase tracking-widest shadow-xl shadow-primary-color/20">Buy artifact</button>
+                                <button onClick={() => setSelectedNft(null)} className="px-6 py-4 border border-white/10 rounded-xl text-xs font-bold">Close</button>
                             </div>
                         </motion.div>
                     </div>

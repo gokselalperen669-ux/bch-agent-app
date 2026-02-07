@@ -22,15 +22,29 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const menuItems = [
-        { icon: Activity, label: 'Dashboard', path: '/dashboard' },
-        { icon: Bot, label: 'Agent Lab', path: '/lab' },
-        { icon: LayoutGrid, label: 'AI NFT Studio', path: '/studio' },
-        { icon: Activity, label: 'Agent Exchange', path: '/exchange' },
-        { icon: Code, label: 'Contract Base', path: '/contracts' },
-        { icon: Wallet, label: 'Vault', path: '/wallet' },
-        { icon: Database, label: 'Knowledge', path: '/data' },
-        { icon: BookOpen, label: 'Docs', path: '/docs' },
+    const navigationGroups = [
+        {
+            title: 'Core',
+            items: [
+                { icon: Activity, label: 'Command Center', path: '/dashboard' },
+                { icon: Bot, label: 'Agent Lab', path: '/lab' },
+            ]
+        },
+        {
+            title: 'Ecosystem',
+            items: [
+                { icon: LayoutGrid, label: 'NFT Studio', path: '/studio' },
+                { icon: Database, label: 'Token Exchange', path: '/exchange' },
+                { icon: Wallet, label: 'Vault', path: '/wallet' },
+            ]
+        },
+        {
+            title: 'Development',
+            items: [
+                { icon: Code, label: 'Contract Base', path: '/contracts' },
+                { icon: BookOpen, label: 'Documentation', path: '/docs' },
+            ]
+        }
     ];
 
     const handleLogout = () => {
@@ -61,28 +75,37 @@ const MainLayout = () => {
                     )}
                 </div>
 
-                <nav className="flex-1 space-y-1 px-3 py-4">
-                    {menuItems.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        return (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 transition-all duration-200 group ${isActive
-                                    ? 'bg-primary-color/10 text-primary-color border border-primary-color/20'
-                                    : 'text-text-secondary hover:bg-white/5 hover:text-white'
-                                    }`}
-                            >
-                                <item.icon size={22} className={isActive ? 'text-primary-color' : 'group-hover:text-white transition-colors'} />
-                                {isSidebarOpen && (
-                                    <span className="text-sm font-bold tracking-tight uppercase">{item.label}</span>
-                                )}
-                                {isActive && isSidebarOpen && (
-                                    <div className="ml-auto h-2 w-2 rounded-full bg-primary-color shadow-[0_0_10px_rgba(0,227,57,0.5)]" />
-                                )}
-                            </button>
-                        );
-                    })}
+                <nav className="flex-1 space-y-8 px-3 py-4 overflow-y-auto custom-scroll">
+                    {navigationGroups.map((group) => (
+                        <div key={group.title} className="space-y-1">
+                            {isSidebarOpen && (
+                                <h5 className="px-4 text-[10px] font-black uppercase tracking-widest text-text-tertiary mb-2">
+                                    {group.title}
+                                </h5>
+                            )}
+                            {group.items.map((item) => {
+                                const isActive = location.pathname === item.path;
+                                return (
+                                    <button
+                                        key={item.path}
+                                        onClick={() => navigate(item.path)}
+                                        className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 transition-all duration-200 group ${isActive
+                                            ? 'bg-primary-color/10 text-primary-color border border-primary-color/20'
+                                            : 'text-text-secondary hover:bg-white/5 hover:text-white'
+                                            }`}
+                                    >
+                                        <item.icon size={22} className={isActive ? 'text-primary-color' : 'group-hover:text-white transition-colors'} />
+                                        {isSidebarOpen && (
+                                            <span className="text-sm font-bold tracking-tight uppercase">{item.label}</span>
+                                        )}
+                                        {isActive && isSidebarOpen && (
+                                            <div className="ml-auto h-1 w-1 rounded-full bg-primary-color shadow-[0_0_10px_rgba(0,227,57,0.5)]" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
                 <div className="p-4 border-t border-white/5 space-y-4">
