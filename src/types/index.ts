@@ -12,7 +12,11 @@ export interface Agent {
     type: string;
     createdAt: string;
     userId: string;
-    status?: 'active' | 'inactive';
+    agentId?: string;
+    ticker?: string;
+    supply?: string;
+    category?: string;
+    status?: 'active' | 'inactive' | 'online';
 }
 
 export interface Wallet {

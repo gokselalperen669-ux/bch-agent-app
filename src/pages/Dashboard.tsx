@@ -29,10 +29,27 @@ const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, lab
 const Dashboard = () => {
     const [activities, setActivities] = useState<Agent[]>([]);
     const [stats, setStats] = useState({ agents: '0', txs: '1,284', value: '0.00' });
+    const [market, setMarket] = useState({ price: '542.84', change: '+4.2%', height: '812,492' });
     const { user } = useAuth();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            // 1. Fetch Market Data (Public)
+            try {
+                const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd&include_24hr_change=true');
+                const priceData = await priceRes.json();
+                const bch = priceData['bitcoin-cash'];
+
+                const heightRes = await fetch('https://chipnet.imaginary.cash/api/v1/status');
+                const heightData = await heightRes.json();
+
+                setMarket({
+                    price: bch.usd.toFixed(2),
+                    change: (bch.usd_24h_change >= 0 ? '+' : '') + bch.usd_24h_change.toFixed(2) + '%',
+                    height: (heightData.height || 812492).toLocaleString()
+                });
+            } catch (e) { console.error('Market fetch error:', e); }
+
             if (!user?.token) return;
             try {
                 const headers = { 'Authorization': `Bearer ${user.token}` };
@@ -82,7 +99,7 @@ const Dashboard = () => {
                             <div className="flex-1">
                                 <p className="text-sm font-semibold tracking-tight">{agent.name || `Strategy Alpha #0${i + 1}`} <span className="text-text-secondary text-xs font-normal ml-2 tracking-normal">executed <span className="text-primary-color">SYNC_ACTION</span></span></p>
                                 <div className="flex items-center gap-3 mt-1.5">
-                                    <span className="text-[9px] text-text-secondary font-mono uppercase tracking-widest px-2 py-0.5 bg-black/40 rounded border border-white/5">{agent.id}</span>
+                                    <span className="text-[9px] text-text-secondary font-mono uppercase tracking-widest px-2 py-0.5 bg-black/40 rounded border border-white/5">{agent.agentId || agent.id}</span>
                                     <span className="text-[9px] text-text-secondary font-bold uppercase">Just now</span>
                                 </div>
                             </div>
@@ -110,11 +127,11 @@ const Dashboard = () => {
                     <div className="p-5 rounded-2xl bg-primary-color/5 border border-primary-color/10 space-y-4">
                         <div className="flex justify-between items-center text-sm font-bold">
                             <span className="text-text-secondary">BCH / USD</span>
-                            <span className="text-primary-color">$542.84 <span className="text-[10px] text-green-400 ml-1">+4.2%</span></span>
+                            <span className="text-primary-color">${market.price} <span className={`text-[10px] ${market.change.startsWith('+') ? 'text-green-400' : 'text-red-400'} ml-1`}>{market.change}</span></span>
                         </div>
                         <div className="flex justify-between items-center text-sm font-bold">
                             <span className="text-text-secondary">Block Height</span>
-                            <span className="text-blue-400 font-mono">812,492</span>
+                            <span className="text-blue-400 font-mono">{market.height}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm font-bold">
                             <span className="text-text-secondary">Network Sat/byte</span>
