@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Bot, Zap, Shield, Activity, Eye, ChevronRight, Globe, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Agent } from '../types';
+import { getApiUrl } from '../config';
 
 const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, label: string, value: string, delta: string }) => (
     <motion.div
@@ -63,7 +64,7 @@ const Dashboard = () => {
                 const headers = { 'Authorization': `Bearer ${user.token}` };
 
                 // Fetch agents
-                const agentsRes = await fetch('http://localhost:4000/agents', { headers });
+                const agentsRes = await fetch(getApiUrl('/agents'), { headers });
                 if (agentsRes.ok) {
                     const agents = await agentsRes.json();
                     setActivities(Array.isArray(agents) ? agents.slice(0, 4) : []);
@@ -71,7 +72,7 @@ const Dashboard = () => {
                 }
 
                 // Fetch wallets for total value
-                const walletsRes = await fetch('http://localhost:4000/wallets', { headers });
+                const walletsRes = await fetch(getApiUrl('/wallets'), { headers });
                 if (walletsRes.ok) {
                     const wallets = await walletsRes.json();
                     const totalBalance = Array.isArray(wallets)

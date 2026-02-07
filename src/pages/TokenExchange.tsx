@@ -11,6 +11,7 @@ import {
     Lock,
     Zap
 } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 interface TokenizedAgent {
     id: string;
@@ -50,7 +51,7 @@ const TokenExchange = () => {
                 setBchPrice(priceData['bitcoin-cash'].usd);
 
                 // 2. Fetch Tokenized Agents (Real Data from our API)
-                const agentsRes = await fetch('http://localhost:4000/public/agents');
+                const agentsRes = await fetch(getApiUrl('/public/agents'));
                 const agentsData = await agentsRes.json();
 
                 // Map API data to our UI structure

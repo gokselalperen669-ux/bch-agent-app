@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Bot, Wallet, Shield, Zap, Terminal, Key, Copy, Check } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 const Profile: React.FC = () => {
     const { user } = useAuth();
@@ -12,8 +13,8 @@ const Profile: React.FC = () => {
             if (!user?.token) return;
             try {
                 const headers = { 'Authorization': `Bearer ${user.token}` };
-                const agentsRes = await fetch('http://localhost:4000/agents', { headers });
-                const walletsRes = await fetch('http://localhost:4000/wallets', { headers });
+                const agentsRes = await fetch(getApiUrl('/agents'), { headers });
+                const walletsRes = await fetch(getApiUrl('/wallets'), { headers });
 
                 if (agentsRes.ok && walletsRes.ok) {
                     const agents = await agentsRes.json();

@@ -11,6 +11,7 @@ import {
     Filter,
     Layers
 } from 'lucide-react';
+import { getApiUrl } from '../config';
 
 interface AgentNft {
     id: string;
@@ -132,7 +133,7 @@ const AgentStudio = () => {
         const fetchStudioData = async () => {
             try {
                 // 1. Fetch Agents who act as curators
-                const agentsRes = await fetch('http://localhost:4000/public/agents');
+                const agentsRes = await fetch(getApiUrl('/public/agents'));
                 const agentsData = await agentsRes.json();
                 setCurators(agentsData.slice(0, 3));
 

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Cpu, Plus, Activity, Shield, Database, Lock, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Agent } from '../types';
+import { getApiUrl } from '../config';
 
 const TriggerBadge = ({ label, active }: { label: string, active?: boolean }) => (
     <motion.div
@@ -41,7 +42,7 @@ const AgentLab = () => {
         const fetchAgents = async () => {
             if (!user?.token) return;
             try {
-                const res = await fetch('http://localhost:4000/agents', {
+                const res = await fetch(getApiUrl('/agents'), {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
                 if (res.ok) setAgents(await res.json());
@@ -58,7 +59,7 @@ const AgentLab = () => {
         try {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            await fetch('http://localhost:4000/agents', {
+            await fetch(getApiUrl('/agents'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ const AgentLab = () => {
             setTimeout(() => setDeployed(false), 5000);
 
             // Refresh list
-            const res = await fetch('http://localhost:4000/agents', {
+            const res = await fetch(getApiUrl('/agents'), {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             setAgents(await res.json());
