@@ -29,28 +29,36 @@ const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, lab
 const Dashboard = () => {
     const [activities, setActivities] = useState<Agent[]>([]);
     const [stats, setStats] = useState({ agents: '0', txs: '1,284', value: '0.00' });
-    const [market, setMarket] = useState({ price: '542.84', change: '+4.2%', height: '812,492' });
+    const [market, setMarket] = useState({ price: '---', change: '---', height: '---' });
+    const [isDataLoading, setIsDataLoading] = useState(true);
     const { user } = useAuth();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
-            // 1. Fetch Market Data (Public)
-            try {
-                const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd&include_24hr_change=true');
-                const priceData = await priceRes.json();
-                const bch = priceData['bitcoin-cash'];
+            setIsDataLoading(true);
+            // 1. Fetch Market Data (Public) - Don't let it block other data
+            fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd&include_24hr_change=true')
+                .then(res => res.json())
+                .then(data => {
+                    const bch = data['bitcoin-cash'];
+                    setMarket(prev => ({
+                        ...prev,
+                        price: bch.usd.toFixed(2),
+                        change: (bch.usd_24h_change >= 0 ? '+' : '') + bch.usd_24h_change.toFixed(2) + '%'
+                    }));
+                }).catch(e => console.error('Price fetch error:', e));
 
-                const heightRes = await fetch('https://chipnet.imaginary.cash/api/v1/status');
-                const heightData = await heightRes.json();
+            fetch('https://chipnet.imaginary.cash/api/v1/status')
+                .then(res => res.json())
+                .then(data => {
+                    setMarket(prev => ({ ...prev, height: (data.height || 812492).toLocaleString() }));
+                }).catch(e => console.error('Height fetch error:', e));
 
-                setMarket({
-                    price: bch.usd.toFixed(2),
-                    change: (bch.usd_24h_change >= 0 ? '+' : '') + bch.usd_24h_change.toFixed(2) + '%',
-                    height: (heightData.height || 812492).toLocaleString()
-                });
-            } catch (e) { console.error('Market fetch error:', e); }
+            if (!user?.token) {
+                setIsDataLoading(false);
+                return;
+            }
 
-            if (!user?.token) return;
             try {
                 const headers = { 'Authorization': `Bearer ${user.token}` };
 
@@ -58,23 +66,35 @@ const Dashboard = () => {
                 const agentsRes = await fetch('http://localhost:4000/agents', { headers });
                 if (agentsRes.ok) {
                     const agents = await agentsRes.json();
-                    setActivities(agents.slice(0, 4));
-                    setStats(prev => ({ ...prev, agents: agents.length.toString() }));
+                    setActivities(Array.isArray(agents) ? agents.slice(0, 4) : []);
+                    setStats(prev => ({ ...prev, agents: (Array.isArray(agents) ? agents.length : 0).toString() }));
                 }
 
                 // Fetch wallets for total value
                 const walletsRes = await fetch('http://localhost:4000/wallets', { headers });
                 if (walletsRes.ok) {
                     const wallets = await walletsRes.json();
-                    const totalBalance = wallets.reduce((acc: number, w: any) => acc + parseFloat(w.balance || '0'), 0);
+                    const totalBalance = Array.isArray(wallets)
+                        ? wallets.reduce((acc: number, w: any) => acc + parseFloat(w.balance || '0'), 0)
+                        : 0;
                     setStats(prev => ({ ...prev, value: totalBalance.toFixed(2) }));
                 }
             } catch (e) {
                 console.error('Dashboard fetch error:', e);
+            } finally {
+                setIsDataLoading(false);
             }
         };
         fetchDashboardData();
     }, [user]);
+
+    if (isDataLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-12 h-12 border-4 border-primary-color/20 border-t-primary-color rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

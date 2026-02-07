@@ -33,13 +33,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 body: JSON.stringify({ email, password })
             });
 
-            if (!response.ok) throw new Error('Login failed');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Login failed');
+            }
 
-            const user = await response.json(); // Changed from response.data || response.json() to just response.json()
+            const user = await response.json();
+
+            if (!user.token) throw new Error('Invalid server response: No token provided');
 
             setUser(user);
             localStorage.setItem('bch_agent_user', JSON.stringify(user));
-        } catch (error) {
+        } catch (error: any) {
             console.error('Login error:', error);
             throw error;
         } finally {

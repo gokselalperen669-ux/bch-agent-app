@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, Mail, ChevronRight, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, Lock, Mail, ChevronRight, Zap, AlertCircle } from 'lucide-react';
 import loginBg from '../assets/login-bg.png';
 import logo from '../assets/logo.png';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login, isLoading } = useAuth();
+    const [error, setError] = useState<string | null>(null);
+    const { login, isLoading, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    // Redirect if already logged in
+    React.useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/dashboard');
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await login(email, password);
+        setError(null);
+        try {
+            await login(email, password);
+            navigate('/dashboard');
+        } catch (err: any) {
+            setError(err.message || 'Authentication failed. Check your credentials.');
+        }
     };
 
     return (
@@ -91,6 +107,17 @@ const Login: React.FC = () => {
                             </div>
                         </div>
 
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs font-bold"
+                            >
+                                <AlertCircle size={14} />
+                                {error}
+                            </motion.div>
+                        )}
+
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -107,6 +134,10 @@ const Login: React.FC = () => {
                                 </>
                             )}
                         </motion.button>
+
+                        <p className="text-[10px] text-center text-text-secondary opacity-60 font-bold whitespace-nowrap">
+                            New agent? <span className="text-primary-color">Account will be created automatically.</span>
+                        </p>
                     </form>
 
                     <div className="mt-8 pt-8 border-t border-white/5 flex flex-col gap-4">
