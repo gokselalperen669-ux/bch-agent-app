@@ -58,31 +58,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            console.log('Attempting login with:', email);
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password
             });
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase Login Detailed Error:', error);
+                throw error;
+            }
+            console.log('Login successful:', data);
         } catch (error: any) {
-            console.error('Login error:', error);
+            console.error('Login Catch Block:', error);
             throw error;
         } finally {
-            setIsLoading(false); // Auth state change will handle success case loading state usually, but safe to do here on error
+            setIsLoading(false);
         }
     };
 
     const register = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const { error } = await supabase.auth.signUp({
+            console.log('Attempting registration with:', email);
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password
             });
-            if (error) throw error;
-            // Note: Users might need to confirm email depending on Supabase settings.
-            // For now, we assume auto-signin or simple registration flow.
+            if (error) {
+                console.error('Supabase Register Detailed Error:', error);
+                throw error;
+            }
+            console.log('Registration successful:', data);
         } catch (error: any) {
-            console.error('Registration error:', error);
+            console.error('Registration Catch Block:', error);
             throw error;
         } finally {
             setIsLoading(false);
