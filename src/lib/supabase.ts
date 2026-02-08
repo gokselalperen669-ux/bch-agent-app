@@ -14,7 +14,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase credentials not found. Please check your .env file.');
 }
 
-export const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key'
-);
+// Safe initialization to prevent Auth crash
+const safeUrl = supabaseUrl && supabaseUrl.startsWith('http')
+    ? supabaseUrl
+    : 'https://placeholder.supabase.co';
+
+const safeKey = supabaseAnonKey && supabaseAnonKey.length > 10
+    ? supabaseAnonKey
+    : 'placeholder-key';
+
+export const supabase = createClient(safeUrl, safeKey);
