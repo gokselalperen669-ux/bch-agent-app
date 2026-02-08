@@ -1,9 +1,19 @@
+export interface InventoryItem {
+    id: string;
+    agentId: string;
+    name: string;
+    type: 'nft' | 'lp_token' | 'other';
+    value: string;
+    acquiredAt: string;
+}
+
 export interface User {
     id: string;
     email: string;
     name: string;
     avatar?: string;
     token?: string;
+    inventory?: InventoryItem[];
 }
 
 export interface Agent {

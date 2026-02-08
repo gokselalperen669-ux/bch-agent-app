@@ -5,14 +5,18 @@ import {
     Lock,
     Wallet as WalletIcon,
     Copy,
-    Loader,
     Shield,
     Bot,
     ArrowUpRight,
-    ArrowDownLeft
+    ArrowDownLeft,
+    Plus,
+    X,
+    ExternalLink,
+    Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Wallet, type Agent } from '../types';
+import { getApiUrl } from '../config';
 
 const Vault = () => {
     const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -23,31 +27,93 @@ const Vault = () => {
     const [unlockedWallets, setUnlockedWallets] = useState<Set<string>>(new Set());
     const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [unlockMnemonic, setUnlockMnemonic] = useState('');
     const [viewMode, setViewMode] = useState<'all' | 'personal' | 'agent'>('all');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    // Add Wallet Form
+    const [newWalletName, setNewWalletName] = useState('');
+    const [newWalletAddress, setNewWalletAddress] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const fetchVaultData = async () => {
+        if (!user?.token) return;
+        setLoading(true);
+        try {
+            const headers = { 'Authorization': `Bearer ${user.token}` };
+            const [walletRes, agentRes] = await Promise.all([
+                fetch(getApiUrl('/wallets'), { headers }),
+                fetch(getApiUrl('/agents'), { headers }),
+            ]);
+
+            if (walletRes.ok && agentRes.ok) {
+                const walletList: Wallet[] = await walletRes.json();
+                const agentList: Agent[] = await agentRes.json();
+
+                // Fetch REAL balances from Chipnet
+                const enrichedWallets = await Promise.all(walletList.map(async (w) => {
+                    try {
+                        const explorerRes = await fetch(`https://chipnet.imaginary.cash/api/v1/address/${w.address}`);
+                        if (explorerRes.ok) {
+                            const data = await explorerRes.json();
+                            const satoshis = data.confirmed + data.unconfirmed;
+                            return { ...w, balance: (satoshis / 100000000).toFixed(4) };
+                        }
+                    } catch (e) {
+                        console.warn(`Could not fetch balance for ${w.address}`);
+                    }
+                    return { ...w, balance: '0.0000' };
+                }));
+
+                setWallets(enrichedWallets);
+                setAgents(agentList);
+            }
+        } catch (e) {
+            console.error("Vault fetch error:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (!user?.token) return;
-            try {
-                const [walletRes, agentRes] = await Promise.all([
-                    fetch('http://localhost:4000/wallets', { headers: { 'Authorization': `Bearer ${user.token}` } }),
-                    fetch('http://localhost:4000/agents', { headers: { 'Authorization': `Bearer ${user.token}` } })
-                ]);
-
-                if (walletRes.ok) setWallets(await walletRes.json());
-                if (agentRes.ok) setAgents(await agentRes.json());
-            } catch (e) {
-                console.error("Failed to fetch vault data", e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchVaultData();
     }, [user]);
 
-    const copyToClipboard = (text: string) => {
+    const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const handleAddWallet = async () => {
+        if (!user?.token || !newWalletName || !newWalletAddress) return;
+        setIsSaving(true);
+        try {
+            const res = await fetch(getApiUrl('/wallets'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    name: newWalletName,
+                    address: newWalletAddress,
+                    createdAt: new Date().toISOString()
+                })
+            });
+
+            if (res.ok) {
+                setShowAddModal(false);
+                setNewWalletName('');
+                setNewWalletAddress('');
+                fetchVaultData();
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const confirmUnlock = () => {
@@ -69,50 +135,63 @@ const Vault = () => {
     });
 
     return (
-        <div className="space-y-8 pb-20">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 overflow-hidden">
+        <div className="space-y-8 pb-20 animate-fade-in text-white">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <h3 className="text-4xl font-black font-title tracking-tighter uppercase">Secure Vault</h3>
-                    <p className="text-text-secondary text-base">On-chain asset management for humans and autonomous agents.</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Shield size={16} className="text-primary-color" />
+                        <span className="text-[10px] font-black text-primary-color uppercase tracking-[0.34em]">Nexus Asset Management</span>
+                    </div>
+                    <h3 className="text-4xl font-black font-title tracking-tighter uppercase italic">SECURE VAULT</h3>
+                    <p className="text-text-tertiary text-sm max-w-xl font-medium">Manage on-chain assets for humans and autonomous entities on Chipnet.</p>
                 </div>
 
-                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
-                    <button
-                        onClick={() => setViewMode('all')}
-                        className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'all' ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'text-text-secondary hover:text-white'}`}
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                        {['all', 'personal', 'agent'].map((mode) => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode as any)}
+                                className={`px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all uppercase ${viewMode === mode ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'text-text-tertiary hover:text-white'}`}
+                            >
+                                {mode}
+                            </button>
+                        ))}
+                    </div>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowAddModal(true)}
+                        className="p-3.5 bg-primary-color text-black rounded-2xl shadow-xl shadow-primary-color/10 hover:bg-primary-color/90 transition-all"
                     >
-                        ALL ASSETS
-                    </button>
-                    <button
-                        onClick={() => setViewMode('personal')}
-                        className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'personal' ? 'bg-primary-color text-black' : 'text-text-secondary hover:text-white'}`}
-                    >
-                        PERSONAL
-                    </button>
-                    <button
-                        onClick={() => setViewMode('agent')}
-                        className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'agent' ? 'bg-primary-color text-black' : 'text-text-secondary hover:text-white'}`}
-                    >
-                        AGENT MANAGED
-                    </button>
+                        <Plus size={20} strokeWidth={3} />
+                    </motion.button>
                 </div>
-            </div>
+            </header>
 
             {loading ? (
-                <div className="flex items-center justify-center p-20">
-                    <Loader className="animate-spin text-primary-color" size={40} />
+                <div className="flex flex-col items-center justify-center py-40 gap-4">
+                    <div className="w-12 h-12 border-2 border-primary-color/20 border-t-primary-color rounded-full animate-spin" />
+                    <p className="text-[10px] font-black text-text-tertiary uppercase tracking-[0.3em]">Scanning Chain...</p>
                 </div>
             ) : filteredWallets.length === 0 ? (
-                <div className="glass-panel p-20 flex flex-col items-center justify-center text-center space-y-6">
-                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-                        <WalletIcon size={40} className="text-text-secondary opacity-20" />
+                <div className="glass-panel py-32 flex flex-col items-center justify-center text-center space-y-8 border-dashed border-white/10">
+                    <div className="w-24 h-24 rounded-[2rem] bg-white/5 flex items-center justify-center border border-white/5 opacity-40">
+                        <WalletIcon size={48} className="text-text-tertiary" />
                     </div>
-                    <div className="space-y-2">
-                        <h4 className="text-2xl font-bold">No Records Identified</h4>
-                        <p className="text-text-secondary max-w-sm mx-auto text-sm leading-relaxed">
-                            No wallets matching the current filter were found. Sync your personal wallet or deploy an agent in the Lab.
+                    <div className="space-y-3">
+                        <h4 className="text-2xl font-black uppercase italic tracking-tighter">Vault Empty</h4>
+                        <p className="text-text-tertiary max-w-sm mx-auto text-sm leading-relaxed font-medium">
+                            No active wallets identified. Sync your CLI keys or add a watch-only address manually.
                         </p>
                     </div>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/10 transition-all font-title"
+                    >
+                        Connect New Asset
+                    </button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -126,68 +205,80 @@ const Vault = () => {
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 key={wallet.id}
-                                className={`glass-panel p-8 relative overflow-hidden border-l-4 transition-all duration-500 ${wallet.agentId ? 'border-l-blue-500 bg-blue-500/[0.01]' : 'border-l-primary-color bg-primary-color/[0.01]'}`}
+                                className={`glass-panel p-10 relative overflow-hidden transition-all duration-500 hover:border-primary-color/30 group ${wallet.agentId ? 'bg-blue-500/[0.01]' : 'bg-primary-color/[0.01]'}`}
                             >
-                                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
-                                    {wallet.agentId ? <Bot size={120} /> : <Shield size={120} />}
+                                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:opacity-[0.08] transition-opacity">
+                                    {wallet.agentId ? <Bot size={200} /> : <Shield size={200} />}
                                 </div>
 
                                 <div className="relative z-10 flex flex-col h-full">
-                                    <div className="flex items-start justify-between mb-8">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${wallet.agentId ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-primary-color/10 border-primary-color/20 text-primary-color'}`}>
-                                                {wallet.agentId ? <Bot size={24} /> : <Shield size={24} />}
+                                    <div className="flex items-start justify-between mb-10">
+                                        <div className="flex items-center gap-5">
+                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition-all ${wallet.agentId ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-primary-color/10 border-primary-color/20 text-primary-color'}`}>
+                                                {wallet.agentId ? <Bot size={32} /> : <Shield size={32} />}
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-lg font-black tracking-tight text-white uppercase">{wallet.name}</p>
-                                                    {isUnlocked && <div className="px-2 py-0.5 bg-green-500/20 text-green-500 text-[8px] font-black rounded uppercase tracking-widest border border-green-500/30">Active Session</div>}
+                                                <div className="flex items-center gap-3">
+                                                    <p className="text-2xl font-black tracking-tighter text-white uppercase italic">{wallet.name}</p>
+                                                    {isUnlocked && <div className="px-2 py-0.5 bg-green-500/20 text-green-500 text-[8px] font-black rounded uppercase tracking-widest border border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.3)]">Active</div>}
                                                 </div>
-                                                <div
-                                                    onClick={() => copyToClipboard(wallet.address)}
-                                                    className="flex items-center gap-2 mt-1 cursor-pointer group/addr"
-                                                >
-                                                    <p className="text-[11px] font-mono text-text-secondary group-hover/addr:text-white transition-colors">
-                                                        {wallet.address.slice(0, 12)}...{wallet.address.slice(-8)}
+                                                <div className="flex items-center gap-3 mt-1.5 pt-1 border-t border-white/5">
+                                                    <p className="text-[11px] font-mono text-text-tertiary">
+                                                        {wallet.address.slice(0, 15)}...{wallet.address.slice(-10)}
                                                     </p>
-                                                    <Copy size={10} className="text-text-secondary group-hover/addr:text-primary-color" />
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => copyToClipboard(wallet.address, wallet.id)}
+                                                            className="text-text-tertiary hover:text-white transition-colors"
+                                                        >
+                                                            {copiedId === wallet.id ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                                                        </button>
+                                                        <a
+                                                            href={`https://chipnet.imaginary.cash/address/${wallet.address}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-text-tertiary hover:text-primary-color transition-colors"
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="text-right">
-                                            <p className="text-[10px] text-text-secondary uppercase font-black tracking-widest opacity-60">Confirmed Balance</p>
-                                            <p className="text-2xl font-black text-white mt-1">
-                                                {wallet.balance || '0.00'} <span className={`text-sm ${wallet.agentId ? 'text-blue-400' : 'text-primary-color'}`}>BCH</span>
+                                            <p className="text-[9px] text-text-tertiary uppercase font-black tracking-[0.2em] mb-1.5">Chipnet Balance</p>
+                                            <p className="text-4xl font-black text-white italic">
+                                                {wallet.balance || '0.0000'} <span className={`text-sm ${wallet.agentId ? 'text-blue-400' : 'text-primary-color'}`}>BCH</span>
                                             </p>
                                         </div>
                                     </div>
 
                                     {wallet.agentId && (
-                                        <div className="mb-8 p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                                    <Activity size={16} className="text-blue-400" />
+                                        <div className="mb-8 p-6 bg-white/5 border border-white/5 rounded-3xl flex items-center justify-between group/agent">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                    <Activity size={20} className="text-blue-400" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[9px] text-text-secondary uppercase font-black tracking-widest">Managed By</p>
-                                                    <p className="text-xs font-bold text-white">{managingAgent?.name || 'Autonomous Agent'}</p>
+                                                    <p className="text-[9px] text-text-tertiary uppercase font-black tracking-widest">Autonomous Controller</p>
+                                                    <p className="text-sm font-black text-white italic uppercase">{managingAgent?.name || 'SYNCING...'}</p>
                                                 </div>
                                             </div>
-                                            <div className="px-3 py-1 bg-blue-500/10 rounded-lg text-[9px] font-black group cursor-pointer hover:bg-blue-500/20 transition-all border border-blue-500/20 text-blue-400 uppercase tracking-widest">
-                                                View Logs
-                                            </div>
+                                            <button className="px-5 py-2.5 bg-blue-500/10 rounded-xl text-[9px] font-black border border-blue-500/20 text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-all">
+                                                Audit Logic
+                                            </button>
                                         </div>
                                     )}
 
-                                    <div className="mt-auto grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className="mt-auto grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <ActionButton icon={ArrowDownLeft} label="Deposit" onClick={() => { }} bg="bg-white/5 hover:bg-white/10" />
                                         <ActionButton icon={ArrowUpRight} label="Withdraw" onClick={() => {
                                             if (!isUnlocked) {
                                                 setSelectedWallet(wallet);
                                                 setShowUnlockModal(true);
                                             } else {
-                                                alert("Withdrawal sequence initiated.");
+                                                alert("Broadcasting withdrawal transaction...");
                                             }
                                         }} bg="bg-white/5 hover:bg-white/10" />
                                         <ActionButton icon={Activity} label="Activity" onClick={() => { }} bg="bg-white/5 hover:bg-white/10" />
@@ -203,33 +294,33 @@ const Vault = () => {
             {/* Unlock Modal */}
             <AnimatePresence>
                 {showUnlockModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="glass-panel w-full max-w-md p-10 border border-primary-color/20 relative overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                                <Lock size={120} className="text-primary-color" />
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                                <Lock size={160} className="text-primary-color" />
                             </div>
 
                             <div className="relative z-10">
-                                <div className="flex items-center gap-1.5 mb-2">
+                                <div className="flex items-center gap-2 mb-3">
                                     <div className="w-2 h-2 rounded-full bg-primary-color animate-pulse" />
-                                    <span className="text-[10px] font-black text-primary-color uppercase tracking-[0.3em]">Security Protocol 84-A</span>
+                                    <span className="text-[10px] font-black text-primary-color uppercase tracking-[0.3em]">Vault Authorization Protocol</span>
                                 </div>
-                                <h3 className="text-2xl font-black mb-1 text-white uppercase tracking-tight">Unlock {selectedWallet?.name}</h3>
-                                <p className="text-sm text-text-secondary mb-8">Authorizing signing capability for this session.</p>
+                                <h3 className="text-3xl font-black mb-1 text-white uppercase italic tracking-tighter">Sign Certificate</h3>
+                                <p className="text-sm text-text-tertiary mb-10 font-medium">Authorizing secure signing context for this browser session.</p>
 
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-[10px] uppercase font-black text-text-secondary mb-3 block tracking-widest">Master Mnemonic Phase</label>
+                                <div className="space-y-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] uppercase font-black text-text-tertiary tracking-[0.2em] block">Vault Mnemonic Key</label>
                                         <textarea
                                             value={unlockMnemonic}
                                             onChange={(e) => setUnlockMnemonic(e.target.value)}
-                                            placeholder="enter 12 or 24 word phrase..."
-                                            className="w-full h-32 bg-black/60 border border-white/10 rounded-2xl p-5 text-sm font-mono focus:border-primary-color focus:bg-primary-color/[0.03] outline-none resize-none transition-all placeholder:text-white/10"
+                                            placeholder="enter 12 or 24 words..."
+                                            className="w-full h-36 bg-black/60 border border-white/5 rounded-2xl p-6 text-xs font-mono focus:border-primary-color focus:bg-primary-color/[0.02] outline-none resize-none transition-all placeholder:text-white/5 leading-relaxed"
                                         />
                                     </div>
 
@@ -239,19 +330,95 @@ const Vault = () => {
                                                 setShowUnlockModal(false);
                                                 setUnlockMnemonic('');
                                             }}
-                                            className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all"
+                                            className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                                         >
-                                            Terminate
+                                            Discard
                                         </button>
                                         <button
                                             onClick={confirmUnlock}
-                                            className="flex-3 py-4 bg-primary-color text-black rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-primary-color/90 shadow-xl shadow-primary-color/20 transition-all"
+                                            className="flex-2 py-4 bg-primary-color text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-primary-color/20 transition-all font-title"
                                         >
-                                            Authorize Access
+                                            Confirm Identity
                                         </button>
                                     </div>
-                                    <p className="text-[10px] text-center text-text-secondary opacity-40 font-bold uppercase tracking-widest">
-                                        End-to-end encrypted session • No persistence
+                                    <p className="text-[9px] text-center text-text-tertiary font-black uppercase tracking-[0.3em] opacity-30">
+                                        AES-256 SANDBOXED • NO PERSISTENCE
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Add Wallet Modal */}
+            <AnimatePresence>
+                {showAddModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="glass-panel w-full max-w-lg p-12 border border-blue-500/20 relative"
+                        >
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="absolute top-8 right-8 text-text-tertiary hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <div className="space-y-10">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Plus size={16} className="text-blue-400" />
+                                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">New Nexus Integration</span>
+                                    </div>
+                                    <h3 className="text-3xl font-black italic uppercase italic tracking-tighter">Connect Asset</h3>
+                                    <p className="text-sm text-text-tertiary font-medium">Sync an existing Chipnet address with your profile.</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] uppercase font-black text-text-tertiary tracking-[0.2em]">Asset Label</label>
+                                        <input
+                                            type="text"
+                                            value={newWalletName}
+                                            onChange={(e) => setNewWalletName(e.target.value)}
+                                            placeholder="e.g. TREASURY_COLD_VAULT"
+                                            className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-5 focus:border-blue-500/50 focus:bg-blue-500/[0.02] outline-none transition-all font-mono text-sm placeholder:text-white/5"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] uppercase font-black text-text-tertiary tracking-[0.2em]">Public Address (bchtest:)</label>
+                                        <input
+                                            type="text"
+                                            value={newWalletAddress}
+                                            onChange={(e) => setNewWalletAddress(e.target.value)}
+                                            placeholder="bchtest:q..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-5 focus:border-blue-500/50 focus:bg-blue-500/[0.02] outline-none transition-all font-mono text-sm placeholder:text-white/5"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        onClick={() => setShowAddModal(false)}
+                                        className="flex-1 py-5 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all font-title"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddWallet}
+                                        disabled={isSaving || !newWalletName || !newWalletAddress}
+                                        className="flex-2 py-5 bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl shadow-blue-500/10 disabled:opacity-50 font-title"
+                                    >
+                                        {isSaving ? 'Synchronizing...' : 'Finalize Connection'}
+                                    </button>
+                                </div>
+                                <div className="p-4 bg-orange-500/[0.03] border border-orange-500/10 rounded-2xl">
+                                    <p className="text-[9px] text-orange-400 font-bold leading-relaxed uppercase tracking-widest text-center">
+                                        Warning: This is a watch-only connection. Signing keys remain in your local CLI vault until specifically authorized.
                                     </p>
                                 </div>
                             </div>
@@ -266,10 +433,10 @@ const Vault = () => {
 const ActionButton = ({ icon: Icon, label, onClick, bg }: { icon: React.ElementType, label: string, onClick: () => void, bg: string }) => (
     <button
         onClick={onClick}
-        className={`p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-2 transition-all group ${bg}`}
+        className={`flex flex-col items-center justify-center gap-3 p-5 rounded-3xl border border-white/5 transition-all group ${bg}`}
     >
-        <Icon size={20} className="text-text-secondary group-hover:text-white transition-all group-hover:scale-110" />
-        <span className="text-[9px] font-black uppercase text-text-secondary group-hover:text-white transition-colors tracking-tighter">{label}</span>
+        <Icon size={20} className="text-text-tertiary group-hover:text-white transition-all group-hover:scale-110" />
+        <span className="text-[9px] font-black uppercase text-text-tertiary group-hover:text-white transition-colors tracking-tighter">{label}</span>
     </button>
 );
 

@@ -27,6 +27,7 @@ const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, lab
 
 const Dashboard = () => {
     const [activities, setActivities] = useState<Agent[]>([]);
+    const [logs, setLogs] = useState<any[]>([]);
     const [stats, setStats] = useState({ agents: '0', txs: '0', value: '0.00' });
     const [market, setMarket] = useState({ price: '---', change: '---', height: '---' });
     const [isDataLoading, setIsDataLoading] = useState(true);
@@ -34,8 +35,6 @@ const Dashboard = () => {
 
     useEffect(() => {
         const fetchDashboardData = async () => {
-            setIsDataLoading(true);
-
             // Market Data
             fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd&include_24hr_change=true')
                 .then(res => res.json())
@@ -53,6 +52,12 @@ const Dashboard = () => {
                 .then(data => {
                     setMarket(prev => ({ ...prev, height: (data.height || 812492).toLocaleString() }));
                 }).catch(e => console.error(e));
+
+            // Public Logs (Live Stream)
+            fetch(getApiUrl('/public/logs'))
+                .then(res => res.json())
+                .then(data => setLogs(data.slice(0, 10)))
+                .catch(e => console.error(e));
 
             if (!user?.token) {
                 setIsDataLoading(false);
@@ -85,7 +90,10 @@ const Dashboard = () => {
                 setIsDataLoading(false);
             }
         };
+
         fetchDashboardData();
+        const interval = setInterval(fetchDashboardData, 10000); // Polling logs every 10s
+        return () => clearInterval(interval);
     }, [user]);
 
     if (isDataLoading) {
@@ -97,7 +105,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in text-white">
             {/* Top Bar Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatsCard icon={Globe} label="BCH Price" value={`$${market.price}`} delta={market.change} />
@@ -131,7 +139,7 @@ const Dashboard = () => {
                                         <div className="h-10 w-10 rounded-xl bg-primary-color/10 flex items-center justify-center">
                                             <Bot size={20} className="text-primary-color" />
                                         </div>
-                                        <span className="text-[10px] font-mono text-text-tertiary"># {agent.id.slice(0, 8)}</span>
+                                        <span className="text-[10px] font-mono text-text-tertiary"># {agent.id.slice(0, 6)}</span>
                                     </div>
                                     <h4 className="font-bold text-white group-hover/item:text-primary-color transition-colors">{agent.name}</h4>
                                     <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest mt-1">Status: <span className="text-green-400">Autonomous</span></p>
@@ -177,7 +185,7 @@ const Dashboard = () => {
 
                 {/* Right Sidebar: CLI Integration */}
                 <div className="space-y-6">
-                    <div className="glass-panel p-8 bg-primary-color/[0.02] border-primary-color/20 relative overflow-hidden group">
+                    <div className="glass-panel p-8 bg-primary-color/[0.02] border-primary-color/20 relative overflow-hidden group h-fit">
                         <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-color/10 blur-3xl rounded-full" />
                         <h4 className="font-bold text-sm uppercase tracking-tighter italic mb-4 flex items-center gap-2">
                             <Terminal size={18} className="text-primary-color" /> CLI INTEGRATION
@@ -193,19 +201,21 @@ const Dashboard = () => {
                         </button>
                     </div>
 
-                    <div className="glass-panel p-6 space-y-4">
+                    <div className="glass-panel p-6 space-y-4 flex-1">
                         <h4 className="font-bold text-xs uppercase tracking-widest text-text-secondary">Live Network Feed</h4>
-                        <div className="space-y-4 overflow-y-auto max-h-[300px] custom-scroll pr-2">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="flex gap-3 text-[10px] border-b border-white/5 pb-3 last:border-0">
-                                    <div className="w-1 h-auto rounded-full bg-white/10" />
+                        <div className="space-y-4 overflow-y-auto max-h-[400px] custom-scroll pr-2">
+                            {logs.length > 0 ? logs.map((log, i) => (
+                                <div key={log.id || i} className="flex gap-3 text-[10px] border-b border-white/5 pb-3 last:border-0 hover:bg-white/[0.02] transition-colors p-2 rounded-lg">
+                                    <div className={`w-1 h-auto rounded-full ${i === 0 ? 'bg-primary-color opacity-100 shadow-[0_0_10px_rgba(0,227,57,0.5)]' : 'bg-white/10 opacity-50'}`} />
                                     <div>
-                                        <p className="text-white font-bold italic underline">TX Block {market.height}</p>
-                                        <p className="text-text-secondary mt-1">Found UTXO belonging to Agent Delta-{i}</p>
-                                        <p className="text-[8px] text-text-tertiary mt-0.5">Hash: 8f2...ae{i}</p>
+                                        <p className="text-white font-bold italic uppercase">{log.agentName}</p>
+                                        <p className="text-text-secondary mt-1 font-medium">{log.action}</p>
+                                        <p className="text-[8px] text-text-tertiary mt-1 uppercase font-black">{new Date(log.timestamp).toLocaleTimeString()}</p>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <p className="text-[10px] text-text-tertiary italic text-center py-10">Waiting for agent activity...</p>
+                            )}
                         </div>
                     </div>
                 </div>
