@@ -1,26 +1,16 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// DIRECT DEBUG CONFIGURATION
+// We are hardcoding these values temporarily to rule out environment variable issues on Vercel.
+const supabaseUrl = 'https://vbsnrlohhgvqqzjxedpi.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZic25ybG9oaGd2cXF6anhlZHBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1MjY2NzMsImV4cCI6MjA4NjEwMjY3M30.I88EtlEJcYdwv2Hr3IM-CILZxrXDoMgJhSSUqzXOxZM';
 
-console.log('Supabase Config:', {
-    url: supabaseUrl ? 'Set' : 'Missing',
-    key: supabaseAnonKey ? 'Set' : 'Missing',
-    fullUrl: supabaseUrl
+console.log('Supabase Client: Using HARDCODED credentials');
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true, // Keep session in local storage
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+    }
 });
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials not found. Please check your .env file.');
-}
-
-// Safe initialization to prevent Auth crash
-const safeUrl = supabaseUrl && supabaseUrl.startsWith('http')
-    ? supabaseUrl
-    : 'https://placeholder.supabase.co';
-
-const safeKey = supabaseAnonKey && supabaseAnonKey.length > 10
-    ? supabaseAnonKey
-    : 'placeholder-key';
-
-export const supabase = createClient(safeUrl, safeKey);
