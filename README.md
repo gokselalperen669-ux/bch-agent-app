@@ -24,14 +24,33 @@ Welcome to the **BCH Agent Studio**, a premium developer tool for creating, depl
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
 - **Styling**: Tailwind CSS + Vanilla CSS Variables
+- **Database**: Supabase (PostgreSQL + Auth)
 
-## 🚀 Future Backend Integration
+## 🔐 Authentication & Database (Supabase)
 
-The UI is ready to be hooked into the following backend services:
-1. **Agent SDK**: For executing signed transactions and managing UTXO state.
-2. **LLM Engine**: For processing triggers and generating action payloads.
-3. **BCH Indexer**: For feeding real-time blockchain data to the dashboard.
-4. **CashScript Compiler**: For on-the-fly contract generation and verification.
+The application uses **Supabase** for secure authentication and real-time database capabilities.
+
+### Setup Instructions
+
+1.  **Create Project**: Go to [Supabase](https://supabase.com) and create a new project.
+2.  **Get Credentials**: In your project dashboard, navigate to `Settings > API` to find your `URL` and `anon` key.
+3.  **Configure Environment**:
+    Create a `.env` file in the root directory:
+    ```env
+    VITE_SUPABASE_URL=your-project-url
+    VITE_SUPABASE_ANON_KEY=your-anon-key
+    ```
+4.  **Restart Server**: Run `npm run dev` again to apply changes.
+
+> **Note**: Email confirmation is enabled by default in Supabase. Check your email after signing up, or disable "Confirm email" in `Authentication > Providers > Email` for development speed.
+
+## 🚀 Backend Integration Status
+
+1.  **Authentication**: ✅ Implemented via Supabase (Sign In / Sign Up).
+2.  **Agent SDK**: Ready for hookup.
+3.  **LLM Engine**: Placeholder ready.
+4.  **BCH Indexer**: Planned.
+5.  **CashScript Compiler**: Planned.
 
 ---
 *Created with focus on visual excellence and developer experience.*

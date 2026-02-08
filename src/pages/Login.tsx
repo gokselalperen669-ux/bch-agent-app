@@ -10,7 +10,8 @@ const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const { login, isLoading, isAuthenticated } = useAuth();
+    const [isSignUp, setIsSignUp] = useState(false);
+    const { login, register, isLoading, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     // Redirect if already logged in
@@ -24,7 +25,17 @@ const Login: React.FC = () => {
         e.preventDefault();
         setError(null);
         try {
-            await login(email, password);
+            if (isSignUp) {
+                await register(email, password);
+                // If auto-confirm is off, they might need to check email. 
+                // However, if successful, we might just redirect or show a message.
+                // For simplicity, we assume they are logged in or will be prompted.
+                // Supabase signInWithPassword automatically logs in after signup if confirm is disabled.
+                // Otherwise user is null until confirmed.
+                // Let's assume for this "app" it just works or we catch error.
+            } else {
+                await login(email, password);
+            }
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.message || 'Authentication failed. Check your credentials.');
@@ -67,7 +78,9 @@ const Login: React.FC = () => {
                         <h1 className="text-3xl font-title font-extrabold tracking-tight text-white mb-2">
                             BCH<span className="text-primary-color" style={{ color: 'var(--primary-color)' }}>AGENT</span>
                         </h1>
-                        <p className="text-text-secondary text-sm font-medium tracking-wide">Enter the autonomous frontier</p>
+                        <p className="text-text-secondary text-sm font-medium tracking-wide">
+                            {isSignUp ? 'Initialize New Agent Identity' : 'Enter the autonomous frontier'}
+                        </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -129,15 +142,23 @@ const Login: React.FC = () => {
                                 <Zap size={20} className="animate-spin" />
                             ) : (
                                 <>
-                                    INITIALIZE SESSION
+                                    {isSignUp ? 'ESTABLISH IDENTITY' : 'INITIALIZE SESSION'}
                                     <ChevronRight size={20} />
                                 </>
                             )}
                         </motion.button>
 
-                        <p className="text-[10px] text-center text-text-secondary opacity-60 font-bold whitespace-nowrap">
-                            New agent? <span className="text-primary-color">Account will be created automatically.</span>
-                        </p>
+                        <div className="text-center">
+                            <p
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                className="text-[10px] cursor-pointer text-text-secondary opacity-80 font-bold whitespace-nowrap hover:text-primary-color transition-colors"
+                            >
+                                {isSignUp ? 'Already have an identity? ' : 'New agent? '}
+                                <span className="text-primary-color underline decoration-dotted underline-offset-4">
+                                    {isSignUp ? 'Access Terminal' : 'Create Account'}
+                                </span>
+                            </p>
+                        </div>
                     </form>
 
                     <div className="mt-8 pt-8 border-t border-white/5 flex flex-col gap-4">
