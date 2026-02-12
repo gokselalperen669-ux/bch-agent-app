@@ -1,8 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { type User } from '../types';
-import { supabase } from '../lib/supabase';
-import { type Session } from '@supabase/supabase-js';
+import { getApiUrl } from '../config';
 
 interface AuthContextType {
     user: User | null;
@@ -19,57 +18,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const mapSessionToUser = (session: Session | null): User | null => {
-        if (!session?.user) return null;
-        return {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.email?.split('@')[0] || 'User', // Simple name extraction
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.email}`,
-            token: session.access_token,
-            inventory: [] // Could fetch from DB later
-        };
-    };
-
     useEffect(() => {
-        // Initial session chcek
-        const checkSession = async () => {
+        const savedUser = localStorage.getItem('nexus_user');
+        if (savedUser) {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                setUser(mapSessionToUser(session));
-            } catch (error) {
-                console.error('Session check failed:', error);
-            } finally {
-                setIsLoading(false);
+                setUser(JSON.parse(savedUser));
+            } catch (e) {
+                localStorage.removeItem('nexus_user');
             }
-        };
-
-        checkSession();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(mapSessionToUser(session));
-            setIsLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
+        }
+        setIsLoading(false);
     }, []);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            console.log('Attempting login with:', email);
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password
+            const response = await fetch(getApiUrl('/auth/login'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
             });
-            if (error) {
-                console.error('Supabase Login Detailed Error:', error);
-                throw error;
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Authentication failed');
             }
-            console.log('Login successful:', data);
+
+            const userData = await response.json();
+            const user: User = {
+                id: userData.id,
+                email: userData.email,
+                name: userData.name,
+                avatar: userData.avatar,
+                token: userData.token,
+                inventory: userData.inventory || []
+            };
+
+            setUser(user);
+            localStorage.setItem('nexus_user', JSON.stringify(user));
         } catch (error: any) {
-            console.error('Login Catch Block:', error);
+            console.error('Login Error:', error);
             throw error;
         } finally {
             setIsLoading(false);
@@ -77,36 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (email: string, password: string) => {
-        setIsLoading(true);
-        try {
-            console.log('Attempting registration with:', email);
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password
-            });
-            if (error) {
-                console.error('Supabase Register Detailed Error:', error);
-                throw error;
-            }
-            console.log('Registration successful:', data);
-        } catch (error: any) {
-            console.error('Registration Catch Block:', error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
+        // In this architecture, login auto-registers if the user doesn't exist
+        return login(email, password);
     };
 
-    const logout = async () => {
-        setIsLoading(true);
-        try {
-            await supabase.auth.signOut();
-            setUser(null);
-        } catch (error) {
-            console.error('Logout failed:', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('nexus_user');
     };
 
     return (

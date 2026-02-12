@@ -188,7 +188,7 @@ const AgentStudio = () => {
                         {logs.filter(l => l.action.includes('commitment') || l.action.includes('NFT')).slice(0, 5).map((log, i) => (
                             <div key={log.id || i} className="flex items-center justify-between p-5 bg-black/40 rounded-2xl border border-white/5 group hover:border-blue-500/20 transition-all">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] pointer-events-none" />
                                     <span className="text-xs font-mono text-text-tertiary">COMMIT: {log.action.split(': ')[1] || '0xDEFAULT'}</span>
                                 </div>
                                 <div className="flex items-center gap-4">

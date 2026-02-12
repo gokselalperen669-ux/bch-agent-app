@@ -65,7 +65,7 @@ const TokenExchange = () => {
                 type: a.type
             }));
 
-            setAgents(mappedAgents);
+            setAgents(mappedAgents.reverse());
         } catch (err) {
             console.error(err);
         } finally {

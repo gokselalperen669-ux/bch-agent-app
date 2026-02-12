@@ -73,7 +73,7 @@ const Dashboard = () => {
 
                 if (agentsRes.ok) {
                     const agents = await agentsRes.json();
-                    setActivities(Array.isArray(agents) ? agents.slice(0, 5) : []);
+                    setActivities(Array.isArray(agents) ? agents.reverse().slice(0, 5) : []);
                     setStats(prev => ({ ...prev, agents: (Array.isArray(agents) ? agents.length : 0).toString() }));
                 }
 

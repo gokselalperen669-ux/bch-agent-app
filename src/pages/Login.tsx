@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield, Lock, Mail, ChevronRight, Zap, AlertCircle } from 'lucide-react';
 import loginBg from '../assets/login-bg.png';
 import logo from '../assets/logo.png';
@@ -13,9 +13,36 @@ const Login: React.FC = () => {
     const [isSignUp, setIsSignUp] = useState(false);
     const { login, register, isLoading, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    // Handle auto-login from CLI
+    useEffect(() => {
+        const authParam = searchParams.get('auth');
+        if (authParam && !isAuthenticated) {
+            try {
+                const authData = JSON.parse(atob(authParam));
+                if (authData.token && authData.email) {
+                    // Store the auth data and redirect
+                    const user = {
+                        id: authData.id || 'cli-user',
+                        email: authData.email,
+                        name: authData.name || authData.email.split('@')[0],
+                        avatar: authData.avatar || '',
+                        token: authData.token,
+                        inventory: authData.inventory || []
+                    };
+                    localStorage.setItem('nexus_user', JSON.stringify(user));
+                    window.location.href = '/dashboard';
+                }
+            } catch (err) {
+                console.error('Auto-login failed:', err);
+                setError('Auto-login from CLI failed. Please login manually.');
+            }
+        }
+    }, [searchParams, isAuthenticated]);
 
     // Redirect if already logged in
-    React.useEffect(() => {
+    useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard');
         }
@@ -56,8 +83,8 @@ const Login: React.FC = () => {
             />
 
             {/* Animated Glows */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-color/20 rounded-full blur-[128px] animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-color/10 rounded-full blur-[128px] animate-pulse-slow" />
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-color/20 rounded-full blur-[128px] animate-pulse pointer-events-none z-0" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-color/10 rounded-full blur-[128px] animate-pulse-slow pointer-events-none z-0" />
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}

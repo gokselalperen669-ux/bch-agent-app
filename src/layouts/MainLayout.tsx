@@ -130,6 +130,10 @@ const MainLayout = () => {
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                {/* Background Glows (Moved to bottom of stack) */}
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-color/5 blur-[120px] rounded-full pointer-events-none z-0" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none z-0" />
+
                 {/* Header */}
                 <header className="h-20 flex items-center justify-between px-8 z-30 border-b border-white/5 bg-[#0a0a0b]/40 backdrop-blur-md">
                     <button
@@ -166,10 +170,6 @@ const MainLayout = () => {
                 <div className="flex-1 overflow-y-auto custom-scroll p-8 relative z-10">
                     <Outlet />
                 </div>
-
-                {/* Background Glows */}
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-color/5 blur-[120px] rounded-full pointer-events-none" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
             </main>
         </div>
     );
