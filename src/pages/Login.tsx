@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Lock, Mail, ChevronRight, Zap, AlertCircle } from 'lucide-react';
 import loginBg from '../assets/login-bg.png';
 import logo from '../assets/logo.png';
@@ -13,36 +13,9 @@ const Login: React.FC = () => {
     const [isSignUp, setIsSignUp] = useState(false);
     const { login, register, isLoading, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-
-    // Handle auto-login from CLI
-    useEffect(() => {
-        const authParam = searchParams.get('auth');
-        if (authParam && !isAuthenticated) {
-            try {
-                const authData = JSON.parse(atob(authParam));
-                if (authData.token && authData.email) {
-                    // Store the auth data and redirect
-                    const user = {
-                        id: authData.id || 'cli-user',
-                        email: authData.email,
-                        name: authData.name || authData.email.split('@')[0],
-                        avatar: authData.avatar || '',
-                        token: authData.token,
-                        inventory: authData.inventory || []
-                    };
-                    localStorage.setItem('nexus_user', JSON.stringify(user));
-                    window.location.href = '/dashboard';
-                }
-            } catch (err) {
-                console.error('Auto-login failed:', err);
-                setError('Auto-login from CLI failed. Please login manually.');
-            }
-        }
-    }, [searchParams, isAuthenticated]);
 
     // Redirect if already logged in
-    useEffect(() => {
+    React.useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard');
         }

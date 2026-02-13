@@ -1,124 +1,173 @@
 import express from 'express';
 import cors from 'cors';
-import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_FILE = path.join(__dirname, 'db.json');
+
+// Initialize database
+if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify({
+        users: [],
+        agents: [],
+        wallets: [],
+        logs: []
+    }, null, 2));
+}
+
+const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 
 const app = express();
-const PORT = process.env.PORT || 4000;
-
-// In-memory user database (replace with real database in production)
-const users = new Map();
-
 app.use(cors());
 app.use(express.json());
 
-// Check if user exists
-app.get('/auth/check-user/:email', (req, res) => {
-    const email = decodeURIComponent(req.params.email);
-    const user = Array.from(users.values()).find(u => u.email === email);
+// Middleware to authenticate token (static mapping for demo/dev)
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (user) {
-        res.json({ exists: true });
-    } else {
-        res.status(404).json({ exists: false, error: 'User not found' });
-    }
-});
+    const token = authHeader.split(' ')[1];
+    const db = readDB();
+    const user = db.users.find(u => u.token === token);
 
-// Login endpoint
+    if (!user) return res.status(403).json({ error: 'Invalid token' });
+
+    req.user = user;
+    next();
+};
+
+// --- AUTH ENDPOINTS ---
+
 app.post('/auth/login', (req, res) => {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
-    }
-
-    // Find user
-    let user = Array.from(users.values()).find(u => u.email === email);
-
-    // Auto-register if user doesn't exist (for web interface)
-    if (!user) {
-        const userId = crypto.randomUUID();
-        const token = crypto.randomBytes(32).toString('hex');
-
-        user = {
-            id: userId,
-            email,
-            password: hashPassword(password),
-            name: email.split('@')[0],
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            token,
-            inventory: [],
-            createdAt: new Date().toISOString()
-        };
-
-        users.set(userId, user);
-        console.log(`✅ New user registered: ${email}`);
-    } else {
-        // Verify password
-        if (user.password !== hashPassword(password)) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        // Regenerate token on login
-        user.token = crypto.randomBytes(32).toString('hex');
-    }
-
-    // Return user data (without password)
-    const { password: _, ...userData } = user;
-    res.json(userData);
-});
-
-// Logout endpoint
-app.post('/auth/logout', (req, res) => {
-    res.json({ success: true });
-});
-
-// Get user profile
-app.get('/auth/profile', authenticateToken, (req, res) => {
-    const user = users.get(req.userId);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-
-    const { password: _, ...userData } = user;
-    res.json(userData);
-});
-
-// Middleware to authenticate token
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const user = Array.from(users.values()).find(u => u.token === token);
+    let db = readDB();
+    let user = db.users.find(u => u.email === email);
 
     if (!user) {
-        return res.status(403).json({ error: 'Invalid token' });
+        return res.status(404).json({ error: 'Account not found. Please register via the web interface.' });
     }
 
-    req.userId = user.id;
-    next();
-}
+    if (user.password !== password) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-// Simple password hashing (use bcrypt in production)
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
-}
+    res.json(user);
+});
 
-// Health check
+app.post('/auth/register', (req, res) => {
+    const { email, password } = req.body;
+    let db = readDB();
+
+    if (db.users.find(u => u.email === email)) {
+        return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const user = {
+        id: 'user_' + Math.random().toString(36).substr(2, 9),
+        email,
+        password,
+        name: email.split('@')[0],
+        token: 'nexus_' + Math.random().toString(36).substr(2, 20),
+        createdAt: new Date().toISOString()
+    };
+
+    db.users.push(user);
+    writeDB(db);
+    res.json(user);
+});
+
+app.get('/auth/check-user/:email', (req, res) => {
+    const db = readDB();
+    const exists = db.users.some(u => u.email === req.params.email);
+    res.json({ exists });
+});
+
+// Used by CLI to check connection
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        users: users.size,
+    res.json({ status: 'active', nexus: 'BCH Agent Nexus v1.0' });
+});
+
+// --- AGENT ENDPOINTS ---
+
+app.get('/agents', authMiddleware, (req, res) => {
+    const db = readDB();
+    const userAgents = db.agents.filter(a => a.userId === req.user.id);
+    res.json(userAgents);
+});
+
+app.post('/agents', authMiddleware, (req, res) => {
+    const agentData = req.body;
+    let db = readDB();
+
+    const newAgent = {
+        ...agentData,
+        id: agentData.agentId || 'ag_' + Math.random().toString(36).substr(2, 9),
+        userId: req.user.id,
+        synchronizedAt: new Date().toISOString()
+    };
+
+    // Update existing or add new
+    const index = db.agents.findIndex(a => a.name === newAgent.name && a.userId === req.user.id);
+    if (index !== -1) {
+        db.agents[index] = { ...db.agents[index], ...newAgent };
+    } else {
+        db.agents.push(newAgent);
+    }
+
+    // Add to logs
+    db.logs.unshift({
+        id: 'log_' + Date.now(),
+        agentName: newAgent.name,
+        action: `Agent synchronized: ${newAgent.type}`,
         timestamp: new Date().toISOString()
     });
+
+    writeDB(db);
+    res.json(newAgent);
 });
 
+// --- WALLET ENDPOINTS ---
+
+app.get('/wallets', authMiddleware, (req, res) => {
+    const db = readDB();
+    const userWallets = db.wallets.filter(w => w.userId === req.user.id);
+    res.json(userWallets);
+});
+
+app.post('/wallets', authMiddleware, (req, res) => {
+    const walletData = req.body;
+    let db = readDB();
+
+    const newWallet = {
+        ...walletData,
+        userId: req.user.id,
+        synchronizedAt: new Date().toISOString(),
+        balance: walletData.balance || (Math.random() * 0.1).toFixed(4) // Mock balance if not provided
+    };
+
+    const index = db.wallets.findIndex(w => w.address === newWallet.address && w.userId === req.user.id);
+    if (index !== -1) {
+        db.wallets[index] = { ...db.wallets[index], ...newWallet };
+    } else {
+        db.wallets.push(newWallet);
+    }
+
+    writeDB(db);
+    res.json(newWallet);
+});
+
+// --- PUBLIC LOGS ---
+
+app.get('/public/logs', (req, res) => {
+    const db = readDB();
+    res.json(db.logs.slice(0, 20));
+});
+
+const PORT = 4000;
 app.listen(PORT, () => {
-    console.log(`🚀 BCH Agent API running on http://localhost:${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`\n🚀 BCH Agent API Server running at http://localhost:${PORT}`);
+    console.log(`📂 Database: ${DB_FILE}\n`);
 });
-
-export default app;

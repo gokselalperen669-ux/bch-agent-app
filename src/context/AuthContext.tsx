@@ -65,8 +65,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (email: string, password: string) => {
-        // In this architecture, login auto-registers if the user doesn't exist
-        return login(email, password);
+        setIsLoading(true);
+        try {
+            const response = await fetch(getApiUrl('/auth/register'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Registration failed');
+            }
+
+            const userData = await response.json();
+            const user: User = {
+                id: userData.id,
+                email: userData.email,
+                name: userData.name,
+                avatar: userData.avatar,
+                token: userData.token,
+                inventory: userData.inventory || []
+            };
+
+            setUser(user);
+            localStorage.setItem('nexus_user', JSON.stringify(user));
+        } catch (error: any) {
+            console.error('Registration Error:', error);
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const logout = () => {
