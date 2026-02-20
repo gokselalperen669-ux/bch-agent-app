@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity,
@@ -39,7 +39,7 @@ const TokenExchange = () => {
     const [swapAmount, setSwapAmount] = useState('1.0');
     const { user } = useAuth();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd');
             const priceData = await priceRes.json();
@@ -49,7 +49,7 @@ const TokenExchange = () => {
             const agentsData = await agentsRes.json();
 
             // Map REAL tokenized agents
-            const mappedAgents = agentsData.map((a: any) => ({
+            const mappedAgents = agentsData.map((a: { id: string; name: string; ticker?: string; status?: string; holders?: number; description?: string; type?: string; bondingCurveProgress?: number }) => ({
                 id: a.id,
                 name: a.name,
                 ticker: a.ticker || a.name.substring(0, 4).toUpperCase(),
@@ -61,8 +61,8 @@ const TokenExchange = () => {
                 description: a.description || 'Autonomous agent on Bitcoin Cash.',
                 riskScore: a.type === 'defi' ? 12 : 5,
                 bondingCurveProgress: a.bondingCurveProgress || (a.status === 'graduated' ? 100 : 15),
-                isGraduated: a.status === 'graduated' || (a.bondingCurveProgress >= 100),
-                type: a.type
+                isGraduated: a.status === 'graduated' || ((a.bondingCurveProgress || 0) >= 100),
+                type: a.type || 'standard'
             }));
 
             setAgents(mappedAgents.reverse());
@@ -71,13 +71,13 @@ const TokenExchange = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 10000); // Live poll
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchData]);
 
     const featuredAgent = agents.find(a => a.bondingCurveProgress > 50) || agents[0];
 
@@ -374,8 +374,7 @@ const TokenExchange = () => {
                                         alert(`${swapMode === 'buy' ? 'Bought' : 'Sold'} ${isBuying.ticker}`);
                                         setIsBuying(null);
                                         fetchData();
-                                    } catch (e) {
-                                        console.error(e);
+                                    } catch {
                                         alert("Transaction Failed");
                                     } finally {
                                         setIsProcessing(false);

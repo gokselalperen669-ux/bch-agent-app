@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (savedUser) {
             try {
                 setUser(JSON.parse(savedUser));
-            } catch (e) {
+            } catch {
                 localStorage.removeItem('nexus_user');
             }
         }
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             setUser(user);
             localStorage.setItem('nexus_user', JSON.stringify(user));
-        } catch (error: any) {
+        } catch (error) {
             console.error('Login Error:', error);
             throw error;
         } finally {
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             setUser(user);
             localStorage.setItem('nexus_user', JSON.stringify(user));
-        } catch (error: any) {
+        } catch (error) {
             console.error('Registration Error:', error);
             throw error;
         } finally {

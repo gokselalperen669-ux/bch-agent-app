@@ -37,8 +37,8 @@ const Login: React.FC = () => {
                 await login(email, password);
             }
             navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.message || 'Authentication failed. Check your credentials.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Authentication failed. Check your credentials.');
         }
     };
 
@@ -67,12 +67,6 @@ const Login: React.FC = () => {
             >
                 <div className="glass-panel p-8 border-white/10 backdrop-blur-2xl relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-color to-transparent opacity-50" />
-
-                    {/* DEBUG INFO - REMOVE LATER */}
-                    <div className="text-[10px] text-red-500 text-center mb-4 font-mono">
-                        DEBUG: URL={import.meta.env.VITE_SUPABASE_URL ? 'OK' : 'MISSING'} |
-                        KEY={import.meta.env.VITE_SUPABASE_ANON_KEY ? 'OK' : 'MISSING'}
-                    </div>
 
                     <div className="flex flex-col items-center mb-10">
                         <motion.div

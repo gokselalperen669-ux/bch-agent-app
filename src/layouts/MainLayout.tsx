@@ -4,6 +4,7 @@ import {
     Bot,
     Wallet,
     Settings as SettingsIcon,
+    Share2,
     Activity,
     Database,
     Code,
@@ -27,6 +28,7 @@ const MainLayout = () => {
             title: 'Core',
             items: [
                 { icon: Activity, label: 'Command Center', path: '/dashboard' },
+                { icon: Share2, label: 'API Connectors', path: '/connectors' },
                 { icon: Bot, label: 'Agent Lab', path: '/lab' },
             ]
         },
@@ -66,7 +68,7 @@ const MainLayout = () => {
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-color text-black shadow-lg shadow-primary-color/20">
                                 <Bot size={24} strokeWidth={2.5} />
                             </div>
-                            <span className="text-xl font-black tracking-tighter font-title uppercase">MOLT<span className="text-primary-color">SPEC</span></span>
+                            <span className="text-xl font-black tracking-tighter font-title uppercase">BCH<span className="text-primary-color">NEXUS</span></span>
                         </div>
                     ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-color text-black">

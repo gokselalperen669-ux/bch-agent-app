@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import TokenExchange from './pages/TokenExchange';
 import AgentStudio from './pages/AgentStudio';
+import Connectors from './pages/Connectors';
 import DocumentationWebsite from './Docs';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -50,6 +51,7 @@ const AppContent = () => {
 
         <Route path="/studio" element={<AgentStudio />} />
         <Route path="/exchange" element={<TokenExchange />} />
+        <Route path="/connectors" element={<Connectors />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/docs" element={<DocumentationWebsite />} />
