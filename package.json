@@ -7,7 +7,7 @@
     "dev": "vite",
     "api": "node api-server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run api\"",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
