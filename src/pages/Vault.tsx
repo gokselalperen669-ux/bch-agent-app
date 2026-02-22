@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Wallet, type Agent } from '../types';
-import { getApiUrl } from '../config';
+import { supabase } from '../lib/supabase';
 
 const Vault = () => {
     const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -38,18 +38,17 @@ const Vault = () => {
     const [isSaving, setIsSaving] = useState(false);
 
     const fetchVaultData = useCallback(async () => {
-        if (!user?.token) return;
+        if (!user?.id) return;
         setLoading(true);
         try {
-            const headers = { 'Authorization': `Bearer ${user.token}` };
             const [walletRes, agentRes] = await Promise.all([
-                fetch(getApiUrl('/wallets'), { headers }),
-                fetch(getApiUrl('/agents'), { headers }),
+                supabase.from('wallets').select('*').eq('userId', user.id),
+                supabase.from('agents').select('*').eq('userId', user.id),
             ]);
 
-            if (walletRes.ok && agentRes.ok) {
-                const walletList: Wallet[] = await walletRes.json();
-                const agentList: Agent[] = await agentRes.json();
+            if (walletRes.data && agentRes.data) {
+                const walletList: Wallet[] = walletRes.data;
+                const agentList: Agent[] = agentRes.data;
 
                 // Fetch REAL balances from Chipnet
                 const enrichedWallets = await Promise.all(walletList.map(async (w) => {
@@ -74,7 +73,7 @@ const Vault = () => {
         } finally {
             setLoading(false);
         }
-    }, [user?.token]);
+    }, [user?.id]);
 
     useEffect(() => {
         fetchVaultData();
@@ -87,23 +86,17 @@ const Vault = () => {
     };
 
     const handleAddWallet = async () => {
-        if (!user?.token || !newWalletName || !newWalletAddress) return;
+        if (!user?.id || !newWalletName || !newWalletAddress) return;
         setIsSaving(true);
         try {
-            const res = await fetch(getApiUrl('/wallets'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
-                },
-                body: JSON.stringify({
-                    name: newWalletName,
-                    address: newWalletAddress,
-                    createdAt: new Date().toISOString()
-                })
+            const { error } = await supabase.from('wallets').insert({
+                name: newWalletName,
+                address: newWalletAddress,
+                userId: user.id,
+                createdAt: new Date().toISOString()
             });
 
-            if (res.ok) {
+            if (!error) {
                 setShowAddModal(false);
                 setNewWalletName('');
                 setNewWalletAddress('');

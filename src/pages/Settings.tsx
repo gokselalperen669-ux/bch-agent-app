@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Key, Lock, Check, RefreshCw, Cpu, Share2, Zap, Palette } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { getApiUrl } from '../config';
+import { supabase } from '../lib/supabase';
 
 const Settings: React.FC = () => {
     const { user } = useAuth();
@@ -22,36 +22,34 @@ const Settings: React.FC = () => {
     const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
-        if (user?.token) {
-            fetch(getApiUrl('/user/settings'), {
-                headers: { 'Authorization': `Bearer ${user.token}` }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    setSettings(prev => ({ ...prev, ...data }));
-                    setIsLoading(false);
-                })
-                .catch(err => {
-                    console.error(err);
+        if (user?.id) {
+            supabase
+                .from('user_settings')
+                .select('*')
+                .eq('userId', user.id)
+                .single()
+                .then(({ data, error }) => {
+                    if (data && !error) {
+                        setSettings(prev => ({ ...prev, ...data.settings }));
+                    }
                     setIsLoading(false);
                 });
         }
-    }, [user]);
+    }, [user?.id]);
 
     const handleSave = async () => {
-        if (!user?.token) return;
+        if (!user?.id) return;
         setIsSaving(true);
         try {
-            const res = await fetch(getApiUrl('/user/settings'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
-                },
-                body: JSON.stringify(settings)
-            });
+            const { error } = await supabase
+                .from('user_settings')
+                .upsert({
+                    userId: user.id,
+                    settings,
+                    updatedAt: new Date().toISOString()
+                }, { onConflict: 'userId' });
 
-            if (res.ok) {
+            if (!error) {
                 setShowSuccess(true);
                 setTimeout(() => setShowSuccess(false), 3000);
             }

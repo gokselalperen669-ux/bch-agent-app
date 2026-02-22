@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Activity, Globe, Terminal, Wallet, Shield, TrendingUp, Layers, BarChart3, ArrowUpRight, ArrowDownRight, RefreshCw, Box, Plus, Minus, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Agent, type Log } from '../types';
-import { getApiUrl } from '../config';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const StatsCard = ({ icon: Icon, label, value, delta }: { icon: ElementType, label: string, value: string, delta: string }) => (
     <motion.div
@@ -41,6 +41,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     const fetchDashboardData = useCallback(async () => {
+        // External market data
         fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd&include_24hr_change=true')
             .then(res => res.json())
             .then(data => {
@@ -58,27 +59,29 @@ const Dashboard = () => {
                 setMarket(prev => ({ ...prev, height: (data.height || 812492).toLocaleString() }));
             }).catch(() => { });
 
-        fetch(getApiUrl('/public/logs'))
-            .then(res => res.json())
-            .then(data => setLogs(data.slice(0, 15)))
-            .catch(() => { });
+        // Fetch logs directly from Supabase
+        const { data: logData } = await supabase
+            .from('logs')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(15);
+        if (logData) setLogs(logData);
 
-        if (!user?.token) {
+        if (!user?.id) {
             setIsDataLoading(false);
             return;
         }
 
         try {
-            const headers = { 'Authorization': `Bearer ${user.token}` };
             const [agentsRes, walletsRes] = await Promise.all([
-                fetch(getApiUrl('/agents'), { headers }),
-                fetch(getApiUrl('/wallets'), { headers })
+                supabase.from('agents').select('*').eq('userId', user.id),
+                supabase.from('wallets').select('*').eq('userId', user.id)
             ]);
 
-            if (agentsRes.ok) {
-                const agents = await agentsRes.json();
-                setActivities(Array.isArray(agents) ? agents : []);
-                setStats(prev => ({ ...prev, agents: (Array.isArray(agents) ? agents.length : 0).toString() }));
+            if (agentsRes.data) {
+                const agents = agentsRes.data;
+                setActivities(agents);
+                setStats(prev => ({ ...prev, agents: agents.length.toString() }));
 
                 if (selectedAgent) {
                     const updated = agents.find((a: Agent) => a.agentId === selectedAgent.agentId);
@@ -86,19 +89,17 @@ const Dashboard = () => {
                 }
             }
 
-            if (walletsRes.ok) {
-                const wallets = await walletsRes.json();
-                const totalBalance = Array.isArray(wallets)
-                    ? wallets.reduce((acc: number, w: { balance?: string }) => acc + parseFloat(w.balance || '0'), 0)
-                    : 0;
+            if (walletsRes.data) {
+                const wallets = walletsRes.data;
+                const totalBalance = wallets.reduce((acc: number, w: { balance?: string }) => acc + parseFloat(w.balance || '0'), 0);
                 setStats(prev => ({ ...prev, value: totalBalance.toFixed(2) }));
             }
-        } catch {
-            // Silently handle
+        } catch (err) {
+            console.error('Fetch Dashboard Error:', err);
         } finally {
             setIsDataLoading(false);
         }
-    }, [user?.token, selectedAgent]);
+    }, [user?.id, selectedAgent]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -107,62 +108,67 @@ const Dashboard = () => {
     }, [fetchDashboardData]);
 
     const sendCommand = async () => {
-        if (!selectedAgent || !commandInput) return;
+        if (!selectedAgent || !commandInput || !user) return;
         setIsExecuting(true);
 
-        const newLog = {
-            id: Date.now(),
+        const newLogEntry = {
+            id: Date.now(), // Local UI ID
             agentName: selectedAgent.name,
             action: `REMOTE_CMD: ${commandInput}`,
-            timestamp: new Date().toISOString()
-        };
-
-        setLogs(prev => [newLog, ...prev]);
+            timestamp: new Date().toISOString(),
+            userId: user.id
+        } as unknown as Log;
 
         try {
-            await fetch(getApiUrl('/agents/command'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
-                },
-                body: JSON.stringify({
+            await Promise.all([
+                supabase.from('logs').insert({
+                    agentName: selectedAgent.name,
+                    action: `REMOTE_CMD: ${commandInput}`,
+                    timestamp: new Date().toISOString(),
+                    userId: user.id
+                }),
+                supabase.from('commands').insert({
                     agentId: selectedAgent.agentId,
-                    command: commandInput
+                    command: commandInput,
+                    status: 'pending',
+                    userId: user.id,
+                    timestamp: new Date().toISOString()
                 })
-            });
+            ]);
 
+            setLogs(prev => [newLogEntry, ...prev]);
             setTimeout(() => {
                 setIsExecuting(false);
                 setCommandInput('');
             }, 800);
-        } catch {
+        } catch (err) {
+            console.error('Command Error:', err);
             setIsExecuting(false);
         }
     };
 
     const handleLiquidity = async () => {
-        if (!selectedAgent || !liqModal.amount) return;
+        if (!selectedAgent || !liqModal.amount || !user) return;
         setIsExecuting(true);
         try {
-            const res = await fetch(getApiUrl(`/agents/${selectedAgent.agentId}/liquidity`), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
-                },
-                body: JSON.stringify({
-                    amount: liqModal.amount,
-                    action: liqModal.type
-                })
-            });
+            const amountNum = parseFloat(liqModal.amount);
+            const currentLiq = parseFloat(selectedAgent.liquidity || '0');
+            const newLiq = (liqModal.type === 'add' ? currentLiq + amountNum : currentLiq - amountNum).toFixed(4);
 
-            if (res.ok) {
-                setLiqModal({ ...liqModal, show: false, amount: '' });
-                fetchDashboardData();
-            }
-        } catch {
-            // Error handled
+            await Promise.all([
+                supabase.from('agents').update({ liquidity: newLiq }).eq('agentId', selectedAgent.agentId),
+                supabase.from('logs').insert({
+                    agentName: selectedAgent.name,
+                    action: `Liquidity ${liqModal.type === 'add' ? 'Injected' : 'Withdrawn'}: ${liqModal.amount} BCH`,
+                    timestamp: new Date().toISOString(),
+                    userId: user.id
+                })
+            ]);
+
+            setLiqModal({ ...liqModal, show: false, amount: '' });
+            fetchDashboardData();
+        } catch (err) {
+            console.error('Liquidity Error:', err);
         } finally {
             setIsExecuting(false);
         }
