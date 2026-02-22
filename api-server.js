@@ -5,23 +5,31 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_FILE = process.env.DATABASE_PATH || path.join(__dirname, 'db.json');
 
-// Initialize database
-if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({
-        users: [],
-        agents: [],
-        wallets: [],
-        logs: [],
-        commands: [],
-        actions: []  // Real-time actions performed by agents
-    }, null, 2));
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Supabase credentials missing!');
 }
 
-const readDB = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-const writeDB = (data) => fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper to handle Supabase responses
+const handleResponse = ({ data, error }) => {
+    if (error) {
+        console.error('Supabase Error:', error);
+        throw error;
+    }
+    return data;
+};
+
+// Replace file-based DB with Supabase adapters
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -29,16 +37,42 @@ app.use(express.json());
 // Enable trust proxy for cloud deployments (Render, Heroku, etc.)
 app.set('trust proxy', 1);
 
-// Middleware to authenticate token (static mapping for demo/dev)
-const authMiddleware = (req, res, next) => {
+// Serve static files from the frontend build directory
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    console.log(`📂 Serving static files from: ${distPath}`);
+
+    // Handle SPA routing - send all non-API requests to index.html
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/auth') ||
+            req.path.startsWith('/agents') ||
+            req.path.startsWith('/wallets') ||
+            req.path.startsWith('/commands') ||
+            req.path.startsWith('/market') ||
+            req.path.startsWith('/public') ||
+            req.path.startsWith('/user') ||
+            req.path.startsWith('/health')) {
+            return next();
+        }
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
+
+// Middleware to authenticate token (Supabase auth)
+const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
 
     const token = authHeader.split(' ')[1];
-    const db = readDB();
-    const user = db.users.find(u => u.token === token);
 
-    if (!user) return res.status(403).json({ error: 'Invalid token' });
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('token', token)
+        .single();
+
+    if (error || !user) return res.status(403).json({ error: 'Invalid token' });
 
     req.user = user;
     next();
@@ -46,12 +80,16 @@ const authMiddleware = (req, res, next) => {
 
 // --- AUTH ENDPOINTS ---
 
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body;
-    let db = readDB();
-    let user = db.users.find(u => u.email === email);
 
-    if (!user) {
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+    if (error || !user) {
         return res.status(404).json({ error: 'Account not found. Please register via the web interface.' });
     }
 
@@ -62,11 +100,16 @@ app.post('/auth/login', (req, res) => {
     res.json(user);
 });
 
-app.post('/auth/register', (req, res) => {
+app.post('/auth/register', async (req, res) => {
     const { email, password } = req.body;
-    let db = readDB();
 
-    if (db.users.find(u => u.email === email)) {
+    const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+    if (existingUser) {
         return res.status(400).json({ error: 'Email already registered' });
     }
 
@@ -79,15 +122,19 @@ app.post('/auth/register', (req, res) => {
         createdAt: new Date().toISOString()
     };
 
-    db.users.push(user);
-    writeDB(db);
+    const { error: insertError } = await supabase.from('users').insert(user);
+    if (insertError) return res.status(500).json({ error: insertError.message });
+
     res.json(user);
 });
 
-app.get('/auth/check-user/:email', (req, res) => {
-    const db = readDB();
-    const exists = db.users.some(u => u.email === req.params.email);
-    res.json({ exists });
+app.get('/auth/check-user/:email', async (req, res) => {
+    const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', req.params.email)
+        .single();
+    res.json({ exists: !!user });
 });
 
 // Used by CLI to check connection
@@ -97,10 +144,14 @@ app.get('/health', (req, res) => {
 
 // --- USER SETTINGS ---
 
-app.get('/user/settings', authMiddleware, (req, res) => {
-    const db = readDB();
-    const user = db.users.find(u => u.id === req.user.id);
-    res.json(user.settings || {
+app.get('/user/settings', authMiddleware, async (req, res) => {
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('settings')
+        .eq('id', req.user.id)
+        .single();
+
+    res.json(user?.settings || {
         aiProvider: 'openai',
         aiModel: 'gpt-4o',
         aiApiKey: '',
@@ -113,18 +164,25 @@ app.get('/user/settings', authMiddleware, (req, res) => {
     });
 });
 
-app.post('/user/settings', authMiddleware, (req, res) => {
-    let db = readDB();
-    const user = db.users.find(u => u.id === req.user.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+app.post('/user/settings', authMiddleware, async (req, res) => {
+    const { data: user } = await supabase
+        .from('users')
+        .select('settings')
+        .eq('id', req.user.id)
+        .single();
 
-    user.settings = {
-        ...user.settings,
+    const newSettings = {
+        ...(user?.settings || {}),
         ...req.body
     };
 
-    writeDB(db);
-    res.json({ success: true, settings: user.settings });
+    const { error } = await supabase
+        .from('users')
+        .update({ settings: newSettings })
+        .eq('id', req.user.id);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, settings: newSettings });
 });
 
 app.post('/user/test-connector', authMiddleware, (req, res) => {
@@ -158,25 +216,35 @@ app.post('/user/test-connector', authMiddleware, (req, res) => {
 
 // --- AGENT ENDPOINTS ---
 
-app.get('/agents', authMiddleware, (req, res) => {
-    const db = readDB();
-    const userAgents = db.agents.filter(a => a.userId === req.user.id);
-    res.json(userAgents);
+app.get('/agents', authMiddleware, async (req, res) => {
+    const { data: agents, error } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('userId', req.user.id);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(agents || []);
 });
 
 // Returns the intelligence configuration for a specific agent.
-// Used by the SDK's fetchRemoteConfig() method.
-app.get('/agents/:agentId/config', authMiddleware, (req, res) => {
-    const db = readDB();
-    const agent = db.agents.find(a => a.agentId === req.params.agentId && a.userId === req.user.id);
-    const user = db.users.find(u => u.id === req.user.id);
+app.get('/agents/:agentId/config', authMiddleware, async (req, res) => {
+    const { data: agent } = await supabase
+        .from('agents')
+        .select('settings')
+        .eq('agentId', req.params.agentId)
+        .eq('userId', req.user.id)
+        .single();
+
+    const { data: user } = await supabase
+        .from('users')
+        .select('settings')
+        .eq('id', req.user.id)
+        .single();
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Fallback logic: Agent-specific config > Global user settings > Default empty
     const settings = (agent && agent.settings) ? agent.settings : (user.settings || {});
 
-    // Structure the response for the SDK
     res.json({
         ai: {
             apiKey: settings.aiApiKey || '',
@@ -188,34 +256,32 @@ app.get('/agents/:agentId/config', authMiddleware, (req, res) => {
     });
 });
 
-app.post('/agents', authMiddleware, (req, res) => {
+app.post('/agents', authMiddleware, async (req, res) => {
     const agentData = req.body;
-    let db = readDB();
+    const agentId = agentData.agentId || 'ag_' + Math.random().toString(36).substr(2, 9);
 
     const newAgent = {
         ...agentData,
-        id: agentData.agentId || 'ag_' + Math.random().toString(36).substr(2, 9),
+        agentId: agentId,
+        id: agentId,
         userId: req.user.id,
         synchronizedAt: new Date().toISOString()
     };
 
-    // Update existing or add new
-    const index = db.agents.findIndex(a => a.name === newAgent.name && a.userId === req.user.id);
-    if (index !== -1) {
-        db.agents[index] = { ...db.agents[index], ...newAgent };
-    } else {
-        db.agents.push(newAgent);
-    }
+    const { error: upsertError } = await supabase
+        .from('agents')
+        .upsert(newAgent, { onConflict: 'agentId,userId' });
+
+    if (upsertError) return res.status(500).json({ error: upsertError.message });
 
     // Add to logs
-    db.logs.unshift({
-        id: 'log_' + Date.now(),
+    await supabase.from('logs').insert({
         agentName: newAgent.name,
-        action: `Agent synchronized: ${newAgent.type} ${newAgent.ticker ? '(' + newAgent.ticker + ')' : ''}`,
-        timestamp: new Date().toISOString()
+        action: `Agent synchronized: ${newAgent.type}`,
+        timestamp: new Date().toISOString(),
+        userId: req.user.id
     });
 
-    writeDB(db);
     res.json(newAgent);
 });
 
@@ -399,16 +465,17 @@ app.post('/wallets', authMiddleware, (req, res) => {
     res.json(newWallet);
 });
 
-// --- PUBLIC LOGS ---
-
-app.get('/public/logs', (req, res) => {
-    const db = readDB();
-    res.json(db.logs.slice(0, 20));
+app.get('/public/logs', async (req, res) => {
+    const { data: logs } = await supabase
+        .from('logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+    res.json(logs || []);
 });
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Nexus HQ API: ACTIVE`);
-    console.log(`📡 Port: ${PORT}`);
-    console.log(`📂 Database: ${DB_FILE}\n`);
+    console.log(`\n🚀 Nexus HQ API (Supabase): ACTIVE`);
+    console.log(`📡 Port: ${PORT}\n`);
 });
