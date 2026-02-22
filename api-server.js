@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -44,7 +44,7 @@ if (fs.existsSync(distPath)) {
     console.log(`📂 Serving static files from: ${distPath}`);
 
     // Handle SPA routing - send all non-API requests to index.html
-    app.get('*', (req, res, next) => {
+    app.get('(.*)', (req, res, next) => {
         if (req.path.startsWith('/auth') ||
             req.path.startsWith('/agents') ||
             req.path.startsWith('/wallets') ||
@@ -56,6 +56,10 @@ if (fs.existsSync(distPath)) {
             return next();
         }
         res.sendFile(path.join(distPath, 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.json({ message: "BCH Nexus API is running. Dist folder not found, frontend not served." });
     });
 }
 
