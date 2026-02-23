@@ -31,7 +31,15 @@ const loadData = () => {
 };
 
 const saveData = (data) => {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    try {
+        if (process.env.VERCEL === '1') {
+            console.log('ℹ️  Skipping persistence in Vercel environment.');
+            return;
+        }
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.warn('⚠️  Could not persist data:', e.message);
+    }
 };
 
 const initialData = loadData();
@@ -211,11 +219,11 @@ app.post('/auth/login', async (req, res) => {
         // 1. Try Supabase
         let { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
 
-        // 2. Local Fallback (Guaranteed for dev)
-        if (!user && isMockMode) {
+        // 2. Local Fallback (Check both for resilience)
+        if (!user) {
             console.log(`🔍 [AUTH] User ${email} not in primary DB. Checking local store...`);
             user = usersStore.find(u => u.email.toLowerCase().trim() === email);
-            if (user) console.log(`✅ [AUTH] User matched.`);
+            if (user) console.log(`✅ [AUTH] User found in local db.json`);
         }
 
         if (!user) {
@@ -233,15 +241,19 @@ app.post('/auth/login', async (req, res) => {
             valid = false;
         }
 
-        // Migration Fallback: If not valid via bcrypt, check if it's plaintext (non-production only)
-        if (!valid && isMockMode && password === user.password) {
+        // Migration Fallback: If not valid via bcrypt, check if it's plaintext
+        if (!valid && password === user.password) {
             valid = true;
             console.log(`⚠️  [AUTH] Plaintext Login: ${email}. Hashing password for future use...`);
             // Auto-migrate to hashed password
             const hashedPassword = await bcrypt.hash(password, 10);
             user.password = hashedPassword;
             // Update in store/database
-            await supabase.from('users').update({ password: hashedPassword }).eq('id', user.id).single();
+            try {
+                await supabase.from('users').update({ password: hashedPassword }).eq('id', user.id);
+            } catch (updateError) {
+                console.warn('⚠️  Could not update password in primary DB:', updateError.message);
+            }
         }
 
         if (!valid) {

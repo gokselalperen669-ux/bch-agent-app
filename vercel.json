@@ -17,15 +17,11 @@
             "destination": "/api-server.js"
         },
         {
-            "source": "/public/(.*)",
-            "destination": "/api-server.js"
-        },
-        {
             "source": "/health",
             "destination": "/api-server.js"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!assets/|public/|favicon.ico).*)",
             "destination": "/index.html"
         }
     ]
