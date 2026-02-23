@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Zap,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getApiUrl } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { type Agent, type Log } from '../types';
 
 interface AgentNft {
     id: string;
@@ -74,12 +75,12 @@ const StudioCard = ({ nft, onNegotiate }: { nft: AgentNft, onNegotiate: (nft: Ag
 const AgentStudio = () => {
     const [selectedNft, setSelectedNft] = useState<AgentNft | null>(null);
     const [nfts, setNfts] = useState<AgentNft[]>([]);
-    const [logs, setLogs] = useState<any[]>([]);
+    const [logs, setLogs] = useState<Log[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAcquiring, setIsAcquiring] = useState(false);
     const { user } = useAuth();
 
-    const fetchStudioData = async () => {
+    const fetchStudioData = useCallback(async () => {
         try {
             const [agentsRes, logsRes] = await Promise.all([
                 fetch(getApiUrl('/public/agents')),
@@ -91,7 +92,7 @@ const AgentStudio = () => {
 
             setLogs(logsData.slice(0, 8));
 
-            const mappedNfts = agentsData.map((a: any) => ({
+            const mappedNfts = agentsData.map((a: Agent) => ({
                 id: `nft-${a.id}`,
                 agentName: a.name,
                 agentId: a.agentId || a.id,
@@ -110,13 +111,13 @@ const AgentStudio = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchStudioData();
         const interval = setInterval(fetchStudioData, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchStudioData]);
 
     if (isLoading) {
         return (
@@ -188,7 +189,7 @@ const AgentStudio = () => {
                         {logs.filter(l => l.action.includes('commitment') || l.action.includes('NFT')).slice(0, 5).map((log, i) => (
                             <div key={log.id || i} className="flex items-center justify-between p-5 bg-black/40 rounded-2xl border border-white/5 group hover:border-blue-500/20 transition-all">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] pointer-events-none" />
                                     <span className="text-xs font-mono text-text-tertiary">COMMIT: {log.action.split(': ')[1] || '0xDEFAULT'}</span>
                                 </div>
                                 <div className="flex items-center gap-4">

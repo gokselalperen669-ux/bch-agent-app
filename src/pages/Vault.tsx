@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Wallet, type Agent } from '../types';
-import { getApiUrl } from '../config';
+import { supabase } from '../lib/supabase';
 
 const Vault = () => {
     const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -37,19 +37,18 @@ const Vault = () => {
     const [newWalletAddress, setNewWalletAddress] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    const fetchVaultData = async () => {
-        if (!user?.token) return;
+    const fetchVaultData = useCallback(async () => {
+        if (!user?.id) return;
         setLoading(true);
         try {
-            const headers = { 'Authorization': `Bearer ${user.token}` };
             const [walletRes, agentRes] = await Promise.all([
-                fetch(getApiUrl('/wallets'), { headers }),
-                fetch(getApiUrl('/agents'), { headers }),
+                supabase.from('wallets').select('*').eq('userId', user.id),
+                supabase.from('agents').select('*').eq('userId', user.id),
             ]);
 
-            if (walletRes.ok && agentRes.ok) {
-                const walletList: Wallet[] = await walletRes.json();
-                const agentList: Agent[] = await agentRes.json();
+            if (walletRes.data && agentRes.data) {
+                const walletList: Wallet[] = walletRes.data;
+                const agentList: Agent[] = agentRes.data;
 
                 // Fetch REAL balances from Chipnet
                 const enrichedWallets = await Promise.all(walletList.map(async (w) => {
@@ -57,28 +56,28 @@ const Vault = () => {
                         const explorerRes = await fetch(`https://chipnet.imaginary.cash/api/v1/address/${w.address}`);
                         if (explorerRes.ok) {
                             const data = await explorerRes.json();
-                            const satoshis = data.confirmed + data.unconfirmed;
+                            const satoshis = (data.confirmed || 0) + (data.unconfirmed || 0);
                             return { ...w, balance: (satoshis / 100000000).toFixed(4) };
                         }
-                    } catch (e) {
+                    } catch {
                         console.warn(`Could not fetch balance for ${w.address}`);
                     }
-                    return { ...w, balance: '0.0000' };
+                    return { ...w, balance: w.balance || '0.0000' };
                 }));
 
                 setWallets(enrichedWallets);
                 setAgents(agentList);
             }
-        } catch (e) {
-            console.error("Vault fetch error:", e);
+        } catch (err) {
+            console.error("Vault fetch error:", err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.id]);
 
     useEffect(() => {
         fetchVaultData();
-    }, [user]);
+    }, [fetchVaultData]);
 
     const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
@@ -87,30 +86,24 @@ const Vault = () => {
     };
 
     const handleAddWallet = async () => {
-        if (!user?.token || !newWalletName || !newWalletAddress) return;
+        if (!user?.id || !newWalletName || !newWalletAddress) return;
         setIsSaving(true);
         try {
-            const res = await fetch(getApiUrl('/wallets'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
-                },
-                body: JSON.stringify({
-                    name: newWalletName,
-                    address: newWalletAddress,
-                    createdAt: new Date().toISOString()
-                })
+            const { error } = await supabase.from('wallets').insert({
+                name: newWalletName,
+                address: newWalletAddress,
+                userId: user.id,
+                createdAt: new Date().toISOString()
             });
 
-            if (res.ok) {
+            if (!error) {
                 setShowAddModal(false);
                 setNewWalletName('');
                 setNewWalletAddress('');
                 fetchVaultData();
             }
-        } catch (e) {
-            console.error(e);
+        } catch (err) {
+            console.error(err);
         } finally {
             setIsSaving(false);
         }
@@ -151,7 +144,7 @@ const Vault = () => {
                         {['all', 'personal', 'agent'].map((mode) => (
                             <button
                                 key={mode}
-                                onClick={() => setViewMode(mode as any)}
+                                onClick={() => setViewMode(mode as 'all' | 'personal' | 'agent')}
                                 className={`px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all uppercase ${viewMode === mode ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'text-text-tertiary hover:text-white'}`}
                             >
                                 {mode}

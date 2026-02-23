@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Cpu, Plus, Activity, Shield, Database, Settings as SettingsIcon } from 'lucide-react';
+import { Cpu, Plus, Activity, Shield, Database, Settings as SettingsIcon, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { type Agent } from '../types';
 import { getApiUrl } from '../config';
@@ -53,6 +53,13 @@ const AgentLab = () => {
         manual: false
     });
 
+    const [aiConfig, setAiConfig] = useState({
+        provider: 'openai',
+        model: 'gpt-4o',
+        apiKey: '',
+        baseUrl: ''
+    });
+
     useEffect(() => {
         const fetchAgents = async () => {
             if (!user?.token) return;
@@ -90,6 +97,12 @@ const AgentLab = () => {
                     description: agentDescription,
                     type: agentType,
                     protocols,
+                    settings: {
+                        aiProvider: aiConfig.provider,
+                        aiModel: aiConfig.model,
+                        aiApiKey: aiConfig.apiKey,
+                        aiBaseUrl: aiConfig.baseUrl
+                    },
                     createdAt: new Date().toISOString(),
                     status: 'active'
                 })
@@ -228,27 +241,73 @@ const AgentLab = () => {
 
                 {/* PROTOCOLS COLUMN */}
                 <div className="space-y-8">
-                    <div className="glass-panel p-8 relative overflow-hidden group border-orange-500/20 bg-orange-500/[0.01]">
+                    <div className="glass-panel p-8 relative overflow-hidden group border-primary-color/20 bg-primary-color/[0.01]">
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:opacity-10 transition-opacity">
-                            <Shield size={160} />
+                            <Cpu size={160} />
                         </div>
-                        <h4 className="font-black flex items-center gap-3 mb-8 uppercase tracking-widest text-xs text-orange-400 italic">
-                            <Shield size={20} />
-                            Safety Covenant
+                        <h4 className="font-black flex items-center gap-3 mb-8 uppercase tracking-widest text-xs text-primary-color italic">
+                            <Activity size={20} />
+                            Neural Intelligence Link
                         </h4>
-                        <div className="relative">
-                            <pre className="p-6 bg-black/80 rounded-2xl font-mono text-[10px] border border-white/5 text-text-tertiary h-48 overflow-hidden leading-relaxed group-hover:text-text-secondary transition-colors">
-                                {`pragma cashscript ^0.12.0;
-                                
-contract ${agentName || 'Agent'}(pubkey pk) {
-    function execute(sig s) {
-        require(checkSig(s, pk));
-        // Strict commitment validation
-        require(tx.inputs[0].nftCommitment != 0x0);
-    }
-}`}
-                            </pre>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+
+                        <div className="space-y-6 relative z-10">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[8px] font-black uppercase text-text-tertiary tracking-widest">Provider</label>
+                                    <select
+                                        value={aiConfig.provider}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, provider: e.target.value })}
+                                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-bold text-white outline-none focus:border-primary-color"
+                                    >
+                                        <option value="openai">OpenAI</option>
+                                        <option value="deepseek">DeepSeek</option>
+                                        <option value="anthropic">Anthropic</option>
+                                        <option value="custom">Custom (GPT-5/Other)</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[8px] font-black uppercase text-text-tertiary tracking-widest">Model Link</label>
+                                    <input
+                                        type="text"
+                                        value={aiConfig.model}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
+                                        placeholder="gpt-4o"
+                                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-bold text-white outline-none focus:border-primary-color"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[8px] font-black uppercase text-text-tertiary tracking-widest">Secret API Key (Bridge)</label>
+                                <div className="relative">
+                                    <input
+                                        type="password"
+                                        value={aiConfig.apiKey}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                                        placeholder="sk-••••••••••••••••"
+                                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-bold text-white outline-none focus:border-primary-color pr-10"
+                                    />
+                                    <Lock size={12} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20" />
+                                </div>
+                            </div>
+
+                            {aiConfig.provider === 'custom' && (
+                                <div className="space-y-2">
+                                    <label className="text-[8px] font-black uppercase text-text-tertiary tracking-widest">Endpoint URL</label>
+                                    <input
+                                        type="text"
+                                        value={aiConfig.baseUrl}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                                        placeholder="https://api.your-model.com/v1"
+                                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-bold text-white outline-none focus:border-primary-color"
+                                    />
+                                </div>
+                            )}
+
+                            <p className="text-[9px] text-text-tertiary italic flex items-center gap-2">
+                                <Shield size={10} className="text-secondary-color" />
+                                Credentials are encrypted on the Nexus Relay.
+                            </p>
                         </div>
                     </div>
 

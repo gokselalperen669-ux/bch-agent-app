@@ -4,6 +4,7 @@ import {
     Bot,
     Wallet,
     Settings as SettingsIcon,
+    Share2,
     Activity,
     Database,
     Code,
@@ -27,6 +28,7 @@ const MainLayout = () => {
             title: 'Core',
             items: [
                 { icon: Activity, label: 'Command Center', path: '/dashboard' },
+                { icon: Share2, label: 'API Connectors', path: '/connectors' },
                 { icon: Bot, label: 'Agent Lab', path: '/lab' },
             ]
         },
@@ -66,7 +68,7 @@ const MainLayout = () => {
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-color text-black shadow-lg shadow-primary-color/20">
                                 <Bot size={24} strokeWidth={2.5} />
                             </div>
-                            <span className="text-xl font-black tracking-tighter font-title uppercase">MOLT<span className="text-primary-color">SPEC</span></span>
+                            <span className="text-xl font-black tracking-tighter font-title uppercase">BCH<span className="text-primary-color">NEXUS</span></span>
                         </div>
                     ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-color text-black">
@@ -130,6 +132,10 @@ const MainLayout = () => {
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                {/* Background Glows (Moved to bottom of stack) */}
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-color/5 blur-[120px] rounded-full pointer-events-none z-0" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none z-0" />
+
                 {/* Header */}
                 <header className="h-20 flex items-center justify-between px-8 z-30 border-b border-white/5 bg-[#0a0a0b]/40 backdrop-blur-md">
                     <button
@@ -166,10 +172,6 @@ const MainLayout = () => {
                 <div className="flex-1 overflow-y-auto custom-scroll p-8 relative z-10">
                     <Outlet />
                 </div>
-
-                {/* Background Glows */}
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-color/5 blur-[120px] rounded-full pointer-events-none" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
             </main>
         </div>
     );

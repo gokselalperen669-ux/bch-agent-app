@@ -27,6 +27,15 @@ export interface Agent {
     supply?: string;
     category?: string;
     status?: 'active' | 'inactive' | 'online';
+    liquidity?: string;
+    description?: string;
+}
+
+export interface Log {
+    id: string | number;
+    agentName: string;
+    action: string;
+    timestamp: string;
 }
 
 export interface Wallet {

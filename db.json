@@ -1,0 +1,86 @@
+{
+  "users": [
+    {
+      "id": "user_zj67joilp",
+      "email": "gokselalperen669@gmail.com",
+      "password": "cvbfgfssxcb",
+      "name": "gokselalperen669",
+      "token": "nexus_tuj9mujo8rh",
+      "createdAt": "2026-02-13T15:23:45.590Z"
+    }
+  ],
+  "agents": [
+    {
+      "name": "AgentBase",
+      "type": "general",
+      "description": "Deployed via CLI to testnet4",
+      "address": "bchtest:pvexr27gusvdxxmwvrldkwncvuvt47v2zajw0qlzn0tu63pvgrfvkmfm50n4t",
+      "network": "testnet4",
+      "agentId": "b699ec1e6ce32f3df40ff9d3782bb96ba5ac15ba",
+      "status": "online",
+      "createdAt": "2026-02-13T15:26:56.090Z",
+      "id": "b699ec1e6ce32f3df40ff9d3782bb96ba5ac15ba",
+      "userId": "user_zj67joilp",
+      "synchronizedAt": "2026-02-13T15:26:56.103Z"
+    },
+    {
+      "name": "AGENTBASE",
+      "description": "",
+      "type": "nft",
+      "protocols": {
+        "transfers": true,
+        "refilling": true,
+        "manual": false
+      },
+      "createdAt": "2026-02-14T05:15:58.646Z",
+      "status": "active",
+      "id": "ag_nfzt3shsa",
+      "userId": "user_zj67joilp",
+      "synchronizedAt": "2026-02-14T05:15:58.656Z"
+    },
+    {
+      "name": "TEST",
+      "type": "defi",
+      "description": "Created via CLI by gokselalperen669@gmail.com",
+      "address": "",
+      "network": "",
+      "agentId": "",
+      "status": "online",
+      "createdAt": "2026-02-14T05:31:19.951Z",
+      "id": "ag_ucbxhqkno",
+      "userId": "user_zj67joilp",
+      "synchronizedAt": "2026-02-14T05:31:19.978Z"
+    }
+  ],
+  "wallets": [
+    {
+      "name": "TEST",
+      "address": "bchtest:qq9fhxnm27kxctf8dtk4ygdkq39xy6d2fqrt3p57zq",
+      "agentId": "",
+      "createdAt": "2026-02-14T05:24:29.135Z",
+      "userId": "user_zj67joilp",
+      "synchronizedAt": "2026-02-14T05:24:29.168Z",
+      "balance": "0.0439"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log_1771047079978",
+      "agentName": "TEST",
+      "action": "Agent synchronized: defi ",
+      "timestamp": "2026-02-14T05:31:19.978Z"
+    },
+    {
+      "id": "log_1771046158656",
+      "agentName": "AGENTBASE",
+      "action": "Agent synchronized: nft ",
+      "timestamp": "2026-02-14T05:15:58.656Z"
+    },
+    {
+      "id": "log_1770996416103",
+      "agentName": "AgentBase",
+      "action": "Agent synchronized: general",
+      "timestamp": "2026-02-13T15:26:56.103Z"
+    }
+  ]
+}
